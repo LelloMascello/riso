@@ -14,3 +14,19 @@ It combines an SSH terminal with an integrated SFTP file explorer, allowing user
 - **Drag & drop** — Upload and download files between local and remote systems.
 - **Local file editing** — Open remote files with local applications and automatically synchronize changes back to the server.
 - **SSH authentication** — Support for passwords and SSH keys.
+
+## Installation
+
+### Arch Linux
+
+You can build and install the Arch package directly using `makepkg`:
+
+```bash
+makepkg -D packaging/arch -sic
+```
+
+Or, if the package file has already been generated:
+
+```bash
+sudo pacman -U packaging/arch/riso-*.pkg.tar.zst
+```
