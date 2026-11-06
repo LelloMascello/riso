@@ -287,7 +287,7 @@ impl Explorer {
         scrolled.set_hscrollbar_policy(gtk::PolicyType::Never);
 
         // -- Minimal text placeholder ----------------------------------------
-        let placeholder_label = gtk::Label::new(Some("In attesa di autenticazione…"));
+        let placeholder_label = gtk::Label::new(Some("In attesa di connessione"));
         placeholder_label.add_css_class("vs-muted");
         placeholder_label.set_wrap(true);
         placeholder_label.set_justify(gtk::Justification::Center);
@@ -414,6 +414,10 @@ impl Explorer {
         }
         self.edits.set_remote(None);
         self.edits.clear();
+        self.root_store.remove_all();
+        self.stores.borrow_mut().clear();
+        self.cwd.borrow_mut().clear();
+        self.path_entry.set_text("");
         self.set_browsing_enabled(false);
         self.set_placeholder(message);
     }

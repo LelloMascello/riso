@@ -1,5 +1,4 @@
 mod config;
-mod connections;
 mod editsync;
 mod explorer;
 mod icons;
@@ -229,138 +228,42 @@ paned > separator {
     font-size: 11px;
 }
 
-/* VS Code Command-Palette Launcher */
-.vs-launcher-bg {
-    background-color: #1f1f1f;
-}
-
-.vs-palette {
-    background-color: #252526;
-    border: 1px solid #3c3c3c;
-    border-radius: 4px;
-}
-
-.vs-palette-input-row {
-    padding: 6px 8px;
-}
-
-.vs-palette-entry {
-    background-color: #313131;
-    color: #cccccc;
-    border: 1px solid #3c3c3c;
-    border-radius: 3px;
-    min-height: 28px;
-    padding: 0 8px;
-    font-family: monospace;
-    font-size: 13px;
-    box-shadow: none;
-}
-
-.vs-palette-entry:focus-within {
-    border-color: #0078d4;
-    outline: none;
-}
-
-.vs-palette-list {
-    background-color: transparent;
-    border-top: 1px solid #323232;
-}
-
-.vs-palette-list > row {
-    padding: 0;
-    margin: 0;
-    border-radius: 0;
-}
-
-.vs-palette-list > row:hover {
-    background-color: #2a2d2e;
-}
-
-.vs-palette-list > row:selected {
-    background-color: #04395e;
-    color: #ffffff;
-}
-
-.vs-palette-row {
-    padding: 5px 10px;
-    min-height: 26px;
-    font-size: 12.5px;
-}
-
-.vs-row-btn {
-    min-width: 20px;
-    min-height: 20px;
-    padding: 1px;
-    border-radius: 3px;
-    color: #858585;
-}
-
-.vs-row-btn:hover {
-    background-color: rgba(255, 255, 255, 0.1);
-    color: #e0e0e0;
-}
-
 .vs-muted {
     color: #858585;
     font-size: 11.5px;
 }
 
-/* Minimal Dialogs ("Salva connessione" / "Apri con…") */
-.vs-form-dialog {
-    padding: 16px;
+/* Inline Terminal SSH Host Autocompletion */
+popover.vs-suggest-popover > contents {
     background-color: #252526;
-}
-
-.vs-field {
-    background-color: #313131;
-    color: #cccccc;
     border: 1px solid #3c3c3c;
     border-radius: 3px;
-    min-height: 30px;
-    padding: 0 8px;
-    font-size: 12.5px;
-    box-shadow: none;
+    padding: 2px 0;
 }
 
-.vs-field:focus-within {
-    border-color: #0078d4;
-    outline: none;
+.vs-suggest-list {
+    background-color: transparent;
+    font-family: monospace;
+    font-size: 12px;
 }
 
-.vs-btn {
-    background-color: #313131;
+.vs-suggest-list > row {
+    padding: 3px 10px;
+    min-height: 22px;
     color: #cccccc;
-    border: 1px solid #3c3c3c;
-    border-radius: 3px;
-    min-height: 28px;
-    padding: 0 12px;
-    font-size: 12.5px;
-    box-shadow: none;
+    border-radius: 0;
 }
 
-.vs-btn:hover {
-    background-color: #3c3c3c;
+.vs-suggest-list > row:hover {
+    background-color: #2a2d2e;
 }
 
-.vs-btn-primary {
-    background-color: #0078d4;
+.vs-suggest-list > row:selected {
+    background-color: #04395e;
     color: #ffffff;
-    border: none;
-    border-radius: 3px;
-    min-height: 28px;
-    padding: 0 14px;
-    font-size: 12.5px;
-    box-shadow: none;
 }
 
-.vs-btn-primary:hover {
-    background-color: #1a86d9;
-}
-
-.vs-btn-primary:disabled {
-    opacity: 0.45;
-}
-
+/* Minimal "Apri con…" Quick-Pick Dialog */
 .vs-picker-dialog {
     background-color: #252526;
     padding: 6px;
@@ -464,7 +367,7 @@ fn main() -> glib::ExitCode {
             .collect();
         let win = window::AppWindow::new(app, &args);
         win.window.present();
-        glib::ExitCode::SUCCESS.into()
+        glib::ExitCode::SUCCESS
     });
 
     app.connect_activate(|app| {

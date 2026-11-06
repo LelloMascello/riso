@@ -1,20 +1,20 @@
 //! SSH connection description and background SFTP workers.
 //!
 //! The terminal runs the system `ssh` binary as an OpenSSH *control master*.
-//! Once the user has authenticated in the terminal, RISO opens additional
-//! `ssh -s sftp` channels multiplexed over the same connection, so no second
-//! authentication is needed.
+//! Once the user has authenticated in the terminal, multiplexed `ssh -s sftp`
+//! channels are opened over the same connection so no second authentication is
+//! needed.
 
 use std::cell::RefCell;
 use std::io;
 use std::path::PathBuf;
 use std::process::{Child, Command, Stdio};
 use std::sync::atomic::{AtomicU32, AtomicU64, Ordering};
-use std::sync::{mpsc, Arc, Mutex};
+use std::sync::{Arc, Mutex, mpsc};
 
 use gtk::glib;
 
-use crate::config::Connection;
+use crate::config::{Connection, ParsedSsh};
 use crate::sftp::Sftp;
 
 static CONTROL_COUNTER: AtomicU32 = AtomicU32::new(0);
@@ -26,10 +26,17 @@ pub struct SshTarget {
     pub user: Option<String>,
     pub port: Option<u16>,
     pub identity_file: Option<String>,
+    pub extra_args: Vec<String>,
     pub control_path: PathBuf,
 }
 
 impl SshTarget {
+    pub fn from_parsed(parsed: &ParsedSsh) -> Self {
+        let mut t = Self::from_connection(&parsed.conn);
+        t.extra_args = parsed.extra_args.clone();
+        t
+    }
+
     pub fn from_connection(conn: &Connection) -> Self {
         let non_empty = |s: &str| {
             let s = s.trim();
@@ -40,6 +47,7 @@ impl SshTarget {
             user: non_empty(&conn.user),
             port: conn.port,
             identity_file: non_empty(&conn.identity_file),
+            extra_args: Vec::new(),
             control_path: new_control_path(),
         }
     }
@@ -79,6 +87,7 @@ impl SshTarget {
             args.push("-i".into());
             args.push(expand_tilde(i));
         }
+        args.extend(self.extra_args.iter().cloned());
         args
     }
 
@@ -90,12 +99,10 @@ impl SshTarget {
             "-o".into(),
             "ControlMaster=auto".into(),
             "-o".into(),
-            // Keep the master alive in the background for a few seconds after
-            // the last client exits, so that the terminal process can exit
-            // as soon as the remote shell does.
             "ControlPersist=5".into(),
         ];
         argv.extend(self.common_args());
+        argv.push("--".into());
         argv.push(self.destination());
         argv
     }
@@ -108,9 +115,19 @@ impl SshTarget {
 
     fn sftp_command(&self) -> Command {
         let mut cmd = Command::new("ssh");
-        cmd.args(["-o", "ControlMaster=no", "-o", "BatchMode=yes", "-T"]);
-        cmd.args(self.common_args());
-        cmd.args(["-s", &self.destination(), "sftp"]);
+        cmd.args([
+            "-o",
+            "ControlMaster=no",
+            "-o",
+            &format!("ControlPath={}", self.control_path.display()),
+            "-o",
+            "BatchMode=yes",
+            "-T",
+        ]);
+        if let Some(p) = self.port {
+            cmd.args(["-p", &p.to_string()]);
+        }
+        cmd.args(["-s", "--", &self.destination(), "sftp"]);
         cmd.stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::null());
@@ -123,8 +140,14 @@ impl SshTarget {
             return;
         }
         let mut cmd = Command::new("ssh");
-        cmd.args(self.common_args());
-        cmd.args(["-O", "exit", &self.destination()]);
+        cmd.args([
+            "-o",
+            &format!("ControlPath={}", self.control_path.display()),
+            "-O",
+            "exit",
+            "--",
+            &self.destination(),
+        ]);
         cmd.stdin(Stdio::null())
             .stdout(Stdio::null())
             .stderr(Stdio::null());
@@ -167,9 +190,6 @@ pub fn shell_quote(s: &str) -> String {
 type Job = Box<dyn FnOnce(Option<&mut Sftp>) + Send>;
 
 /// An SFTP channel served by a dedicated background thread.
-///
-/// Operations are closures executed sequentially on the worker thread and
-/// awaited from the GTK main loop.
 pub struct Remote {
     tx: RefCell<Option<mpsc::Sender<Job>>>,
     child: Arc<Mutex<Option<Child>>>,
@@ -192,7 +212,7 @@ impl Remote {
             let mut sftp = match sftp {
                 Ok(s) => Some(s),
                 Err(e) => {
-                    eprintln!("riso: avvio SFTP fallito: {e}");
+                    eprintln!("avvio SFTP fallito: {e}");
                     None
                 }
             };
@@ -230,11 +250,17 @@ impl Remote {
             .map(|tx| tx.send(job).is_ok())
             .unwrap_or(false);
         if !sent {
-            return Err(io::Error::new(io::ErrorKind::NotConnected, "Connessione chiusa"));
+            return Err(io::Error::new(
+                io::ErrorKind::NotConnected,
+                "Connessione chiusa",
+            ));
         }
-        r.recv()
-            .await
-            .unwrap_or_else(|_| Err(io::Error::new(io::ErrorKind::NotConnected, "Connessione chiusa")))
+        r.recv().await.unwrap_or_else(|_| {
+            Err(io::Error::new(
+                io::ErrorKind::NotConnected,
+                "Connessione chiusa",
+            ))
+        })
     }
 
     /// Terminates the channel.

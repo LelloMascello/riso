@@ -1,8 +1,13 @@
 //! Terminal widget construction and minimal UI dialogs.
 
+use std::cell::RefCell;
+use std::rc::Rc;
+
 use adw::prelude::*;
 use gtk::{gdk, gio, glib, pango};
 use vte4::prelude::*;
+
+pub type PasteHook = Rc<RefCell<Option<Box<dyn Fn() -> bool>>>>;
 
 // VS Code Dark Modern terminal palette
 const PALETTE: [&str; 16] = [
@@ -12,8 +17,9 @@ const PALETTE: [&str; 16] = [
 const FOREGROUND: &str = "#cccccc";
 const BACKGROUND: &str = "#1f1f1f";
 
-pub fn new_terminal() -> vte4::Terminal {
+pub fn new_terminal() -> (vte4::Terminal, PasteHook) {
     let term = vte4::Terminal::new();
+    let paste_hook: PasteHook = Rc::default();
     term.set_hexpand(true);
     term.set_vexpand(true);
     term.set_scrollback_lines(10_000);
@@ -44,10 +50,16 @@ pub fn new_terminal() -> vte4::Terminal {
         move |_, _| term.copy_clipboard_format(vte4::Format::Text)
     ));
     let paste = gio::SimpleAction::new("paste", None);
+    let ph = paste_hook.clone();
     paste.connect_activate(glib::clone!(
         #[weak]
         term,
-        move |_, _| term.paste_clipboard()
+        move |_, _| {
+            let handled = ph.borrow().as_ref().is_some_and(|f| f());
+            if !handled {
+                term.paste_clipboard();
+            }
+        }
     ));
     let select_all = gio::SimpleAction::new("select-all", None);
     select_all.connect_activate(glib::clone!(
@@ -108,7 +120,7 @@ pub fn new_terminal() -> vte4::Terminal {
     term.add_controller(click);
     term.connect_destroy(move |_| popover.unparent());
 
-    term
+    (term, paste_hook)
 }
 
 pub fn spawn(term: &vte4::Terminal, argv: &[String], cwd: Option<&str>) {

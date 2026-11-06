@@ -53,30 +53,10 @@ const ICONS: &[(&str, &str)] = &[
         "vs-refresh-symbolic",
         r##"<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><path fill="#2e3436" d="M13.45 5.69A5.5 5.5 0 1 0 13.5 9h-1a4.5 4.5 0 1 1-.39-2.85L10 6.5v-1l3.08-.49.42.42.26 2.86-.99.09-.18-1.94-.14.25z"/></svg>"##,
     ),
-    // Edit pencil
-    (
-        "vs-edit-symbolic",
-        r##"<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><path fill="#2e3436" fill-rule="evenodd" d="M11.85 2.15a.5.5 0 0 1 .71 0l1.29 1.29a.5.5 0 0 1 0 .71L5.21 12.79l-.35.15-2.5.56-.58-.58.56-2.5.15-.35 8.64-8.64-.28.72zM3.67 10.68l-.36 1.61 1.61-.36 7.86-7.86-1.25-1.25-7.86 7.86z"/></svg>"##,
-    ),
-    // Trash
-    (
-        "vs-trash-symbolic",
-        r##"<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><path fill="#2e3436" fill-rule="evenodd" d="M6 2h4l.5.5V4H14v1h-1v8.5l-.5.5h-9l-.5-.5V5H2V4h3.5V2.5L6 2zm.5 1v1h3V3h-3zM4 5v8h8V5H4zm2 1.5h1v5H6v-5zm3 0h1v5H9v-5z"/></svg>"##,
-    ),
     // Upload arrow
     (
         "vs-upload-symbolic",
         r##"<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><path fill="#2e3436" d="M8 2.29l3.85 3.86-.7.7L8.5 4.21V11h-1V4.21L4.85 6.85l-.7-.7L8 2.29zM3 12h1v1h8v-1h1v1.5l-.5.5h-9l-.5-.5V12z"/></svg>"##,
-    ),
-    // Right arrow
-    (
-        "vs-arrow-right-symbolic",
-        r##"<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><path fill="#2e3436" d="M13.21 8l-4.36 4.35-.7-.7 3.14-3.15H2.5v-1h8.79L8.15 4.35l.7-.7L13.21 8z"/></svg>"##,
-    ),
-    // Remote host
-    (
-        "vs-server-symbolic",
-        r##"<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><path fill="#2e3436" fill-rule="evenodd" d="M2.5 3h11l.5.5v3l-.5.5h-11l-.5-.5v-3l.5-.5zM3 4v2h10V4H3zm-.5 5h11l.5.5v3l-.5.5h-11l-.5-.5v-3l.5-.5zM3 10v2h10v-2H3zm8-5.5h1v1h-1v-1zm0 6h1v1h-1v-1z"/></svg>"##,
     ),
 ];
 

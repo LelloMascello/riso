@@ -1,5 +1,5 @@
-//! Minimal VS Code-style main window: single unified top tab bar, zero repeated
-//! labels, and SSH-only tab management.
+//! Minimal VS Code-style main window: single unified top tab bar where every
+//! tab opens directly into an SSH session view.
 
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
@@ -8,29 +8,22 @@ use std::rc::{Rc, Weak};
 use adw::prelude::*;
 use gtk::{gio, glib};
 
-use crate::config::Connection;
-use crate::connections::{self, ConnStore};
+use crate::config::{HostStore, ParsedSsh};
 use crate::session::Session;
-
-enum TabEntry {
-    Launcher(gtk::Entry),
-    Session(Rc<Session>),
-}
 
 pub struct AppWindow {
     pub window: adw::ApplicationWindow,
     toast_overlay: adw::ToastOverlay,
     tab_view: adw::TabView,
-    sidebar_btn: gtk::Button,
-    store: Rc<ConnStore>,
-    tabs: RefCell<HashMap<adw::Bin, TabEntry>>,
+    store: Rc<HostStore>,
+    tabs: RefCell<HashMap<adw::Bin, Rc<Session>>>,
     context_page: RefCell<Option<adw::TabPage>>,
     closing_window: Cell<bool>,
 }
 
 impl AppWindow {
     pub fn new(app: &adw::Application, initial_targets: &[String]) -> Rc<Self> {
-        let store = ConnStore::new();
+        let store = HostStore::new();
 
         let window = adw::ApplicationWindow::builder()
             .application(app)
@@ -104,7 +97,6 @@ impl AppWindow {
             window,
             toast_overlay,
             tab_view,
-            sidebar_btn,
             store,
             tabs: RefCell::default(),
             context_page: RefCell::default(),
@@ -120,91 +112,65 @@ impl AppWindow {
         });
 
         if initial_targets.is_empty() {
-            this.open_launcher_tab();
+            this.open_prompt_tab();
         } else {
             let mut opened = 0;
             for arg in initial_targets {
-                if let Some(conn) = this.store.resolve_quick(arg) {
-                    this.open_ssh_tab(conn);
+                if let Some(parsed) = this.store.resolve(arg) {
+                    this.open_ssh_tab(parsed);
                     opened += 1;
                 }
             }
             if opened == 0 {
-                this.open_launcher_tab();
+                this.open_prompt_tab();
             }
         }
 
         this
     }
 
-    pub fn open_launcher_tab(self: &Rc<Self>) -> adw::TabPage {
-        let slot = adw::Bin::new();
-        let page = self.tab_view.append(&slot);
-        page.set_title("Nuova");
+    pub fn open_prompt_tab(self: &Rc<Self>) -> adw::TabPage {
+        let (slot, page, session) = self.create_session_tab();
+        self.tabs.borrow_mut().insert(slot, session.clone());
+        self.tab_view.set_selected_page(&page);
+        session.start_prompt();
+        session.focus();
+        self.sync_window_title();
+        page
+    }
 
-        let w = Rc::downgrade(self);
-        let s = slot.downgrade();
-        let (launcher, entry) = connections::build_launcher(self.store.clone(), move |conn| {
-            if let (Some(this), Some(slot)) = (w.upgrade(), s.upgrade()) {
-                this.upgrade_slot_to_ssh(&slot, conn);
+    pub fn open_ssh_tab(self: &Rc<Self>, parsed: ParsedSsh) -> adw::TabPage {
+        let (slot, page, session) = self.create_session_tab();
+        self.tabs.borrow_mut().insert(slot, session.clone());
+        self.tab_view.set_selected_page(&page);
+        session.start_with_target(parsed);
+        session.focus();
+        self.sync_window_title();
+        page
+    }
+
+    fn create_session_tab(self: &Rc<Self>) -> (adw::Bin, adw::TabPage, Rc<Session>) {
+        let slot = adw::Bin::new();
+        let weak = Rc::downgrade(self);
+        let session = Session::new(self.store.clone(), move || {
+            if let Some(this) = weak.upgrade() {
+                this.sync_window_title();
             }
         });
-        slot.set_child(Some(&launcher));
-        self.tabs
-            .borrow_mut()
-            .insert(slot, TabEntry::Launcher(entry.clone()));
-        self.tab_view.set_selected_page(&page);
-        entry.grab_focus();
-        self.sync_ui_state();
-        page
-    }
-
-    pub fn open_ssh_tab(self: &Rc<Self>, conn: Connection) -> adw::TabPage {
-        let slot = adw::Bin::new();
-        let session = Session::new(conn);
         slot.set_child(Some(&session.widget));
         let page = self.tab_view.append(&slot);
         session.set_page(&page);
-        self.tabs
-            .borrow_mut()
-            .insert(slot, TabEntry::Session(session.clone()));
-        self.tab_view.set_selected_page(&page);
-        session.start();
-        session.focus();
-        self.sync_ui_state();
-        page
+        (slot, page, session)
     }
 
-    fn upgrade_slot_to_ssh(self: &Rc<Self>, slot: &adw::Bin, conn: Connection) {
-        let page = self.tab_view.page(slot);
-        let session = Session::new(conn);
-        slot.set_child(Some(&session.widget));
-        session.set_page(&page);
-        self.tabs
-            .borrow_mut()
-            .insert(slot.clone(), TabEntry::Session(session.clone()));
-        session.start();
-        session.focus();
-        self.sync_ui_state();
-    }
-
-    fn sync_ui_state(&self) {
-        let Some(page) = self.tab_view.selected_page() else {
-            self.sidebar_btn.set_visible(false);
-            self.window.set_title(Some("SSH"));
-            return;
-        };
-        let Some(slot) = page.child().downcast::<adw::Bin>().ok() else { return };
-        match self.tabs.borrow().get(&slot) {
-            Some(TabEntry::Session(session)) => {
-                self.sidebar_btn.set_visible(true);
-                self.window.set_title(Some(&session.title()));
-            }
-            _ => {
-                self.sidebar_btn.set_visible(false);
-                self.window.set_title(Some("SSH"));
-            }
-        }
+    fn sync_window_title(&self) {
+        let title = self
+            .tab_view
+            .selected_page()
+            .and_then(|p| p.child().downcast::<adw::Bin>().ok())
+            .and_then(|slot| self.tabs.borrow().get(&slot).map(|s| s.window_title()))
+            .unwrap_or_else(|| "SSH".to_string());
+        self.window.set_title(Some(&title));
     }
 
     fn setup_actions(self: &Rc<Self>) {
@@ -232,12 +198,12 @@ impl AppWindow {
         };
 
         add("new-tab", |this| {
-            this.open_launcher_tab();
+            this.open_prompt_tab();
         });
         add("toggle-sidebar", |this| {
             let Some(page) = this.tab_view.selected_page() else { return };
             let Some(slot) = page.child().downcast::<adw::Bin>().ok() else { return };
-            if let Some(TabEntry::Session(session)) = this.tabs.borrow().get(&slot) {
+            if let Some(session) = this.tabs.borrow().get(&slot) {
                 session.toggle_explorer();
             }
         });
@@ -292,18 +258,13 @@ impl AppWindow {
         let weak = Rc::downgrade(self);
         self.tab_view.connect_selected_page_notify(move |view| {
             let Some(this) = weak.upgrade() else { return };
-            this.sync_ui_state();
+            this.sync_window_title();
             let Some(page) = view.selected_page() else { return };
             page.set_needs_attention(false);
             let Some(slot) = page.child().downcast::<adw::Bin>().ok() else { return };
-            match this.tabs.borrow().get(&slot) {
-                Some(TabEntry::Launcher(entry)) => {
-                    entry.grab_focus();
-                }
-                Some(TabEntry::Session(session)) => {
-                    session.focus();
-                }
-                None => {}
+            let session = this.tabs.borrow().get(&slot).cloned();
+            if let Some(session) = session {
+                session.focus();
             }
         });
 
@@ -311,7 +272,7 @@ impl AppWindow {
         self.tab_view.connect_close_page(move |view, page| {
             if let Some(this) = weak.upgrade()
                 && let Some(slot) = page.child().downcast::<adw::Bin>().ok()
-                && let Some(TabEntry::Session(session)) = this.tabs.borrow_mut().remove(&slot)
+                && let Some(session) = this.tabs.borrow_mut().remove(&slot)
             {
                 session.shutdown();
             }
@@ -331,10 +292,8 @@ impl AppWindow {
         self.window.connect_close_request(move |_| {
             if let Some(this) = weak.upgrade() {
                 this.closing_window.set(true);
-                for (_, entry) in this.tabs.borrow_mut().drain() {
-                    if let TabEntry::Session(session) = entry {
-                        session.shutdown();
-                    }
+                for (_, session) in this.tabs.borrow_mut().drain() {
+                    session.shutdown();
                 }
             }
             glib::Propagation::Proceed
