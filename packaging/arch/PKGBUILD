@@ -1,0 +1,62 @@
+# Maintainer: Leopoldo <leopoldopollini@gmail.com>
+
+pkgname=riso
+pkgver=0.1.0
+pkgrel=1
+pkgdesc='Remote Interface for SSH Operations — graphical SSH client with integrated SFTP explorer'
+arch=('x86_64' 'aarch64')
+url='' # Inserisci qui l'URL pubblico del repository quando disponibile (es. GitHub/GitLab)
+license=('MIT')
+depends=(
+  'glib2'
+  'glibc'
+  'gtk4'
+  'hicolor-icon-theme'
+  'libadwaita'
+  'libgcc'
+  'openssh'
+  'pango'
+  'vte4'
+)
+makedepends=('cargo')
+options=('!lto' '!debug')
+
+prepare() {
+  local _root
+  _root="$(realpath "$startdir/../..")"
+
+  rm -rf "$srcdir/$pkgname"
+  mkdir -p "$srcdir/$pkgname"
+  cp -a "$_root"/{Cargo.toml,Cargo.lock,README.md,riso.desktop,src,assets} "$srcdir/$pkgname/"
+  [[ -f "$_root/LICENSE" ]] && cp -a "$_root/LICENSE" "$srcdir/$pkgname/"
+
+  cd "$srcdir/$pkgname"
+  export RUSTUP_TOOLCHAIN=stable
+  cargo fetch --locked --offline 2>/dev/null || \
+    cargo fetch --locked --target "$(rustc -vV | sed -n 's/host: //p')"
+}
+
+build() {
+  cd "$srcdir/$pkgname"
+  export RUSTUP_TOOLCHAIN=stable
+  export CARGO_TARGET_DIR=target
+  cargo build --frozen --release --all-features
+}
+
+check() {
+  cd "$srcdir/$pkgname"
+  export RUSTUP_TOOLCHAIN=stable
+  export CARGO_TARGET_DIR=target
+  cargo test --frozen --release --all-features
+}
+
+package() {
+  cd "$srcdir/$pkgname"
+  install -Dm755 "target/release/$pkgname" "$pkgdir/usr/bin/$pkgname"
+  install -Dm644 "riso.desktop" "$pkgdir/usr/share/applications/$pkgname.desktop"
+  install -Dm644 "assets/riso-icon.png" "$pkgdir/usr/share/icons/hicolor/512x512/apps/riso-icon.png"
+  install -Dm644 "README.md" "$pkgdir/usr/share/doc/$pkgname/README.md"
+  if [[ -f LICENSE ]]; then
+    install -Dm644 "LICENSE" "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+  fi
+}

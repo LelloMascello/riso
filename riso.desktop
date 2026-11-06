@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=RISO
+Comment=Remote Interface for SSH Operations
+Exec=riso
+Icon=riso-icon
+Terminal=false
+Categories=Network;RemoteAccess;
+Keywords=ssh;sftp;terminal;remote;
+StartupNotify=true
+StartupWMClass=io.github.sshclient.App
