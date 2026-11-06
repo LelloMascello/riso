@@ -1,0 +1,276 @@
+//! SSH connection description and background SFTP workers.
+//!
+//! The terminal runs the system `ssh` binary as an OpenSSH *control master*.
+//! Once the user has authenticated in the terminal, RISO opens additional
+//! `ssh -s sftp` channels multiplexed over the same connection, so no second
+//! authentication is needed.
+
+use std::cell::RefCell;
+use std::io;
+use std::path::PathBuf;
+use std::process::{Child, Command, Stdio};
+use std::sync::atomic::{AtomicU32, AtomicU64, Ordering};
+use std::sync::{mpsc, Arc, Mutex};
+
+use gtk::glib;
+
+use crate::config::Connection;
+use crate::sftp::Sftp;
+
+static CONTROL_COUNTER: AtomicU32 = AtomicU32::new(0);
+
+/// Everything needed to invoke `ssh` for a given connection.
+#[derive(Debug, Clone)]
+pub struct SshTarget {
+    pub host: String,
+    pub user: Option<String>,
+    pub port: Option<u16>,
+    pub identity_file: Option<String>,
+    pub control_path: PathBuf,
+}
+
+impl SshTarget {
+    pub fn from_connection(conn: &Connection) -> Self {
+        let non_empty = |s: &str| {
+            let s = s.trim();
+            (!s.is_empty()).then(|| s.to_string())
+        };
+        SshTarget {
+            host: conn.host.trim().to_string(),
+            user: non_empty(&conn.user),
+            port: conn.port,
+            identity_file: non_empty(&conn.identity_file),
+            control_path: new_control_path(),
+        }
+    }
+
+    /// Generates a fresh control socket path (used for reconnections).
+    pub fn renew_control_path(&mut self) {
+        let _ = std::fs::remove_file(&self.control_path);
+        self.control_path = new_control_path();
+    }
+
+    /// `user@host` (or just `host`).
+    pub fn destination(&self) -> String {
+        match &self.user {
+            Some(u) => format!("{u}@{}", self.host),
+            None => self.host.clone(),
+        }
+    }
+
+    /// Human readable label, e.g. `user@host:2222`.
+    pub fn label(&self) -> String {
+        match self.port {
+            Some(p) if p != 22 => format!("{}:{p}", self.destination()),
+            _ => self.destination(),
+        }
+    }
+
+    fn common_args(&self) -> Vec<String> {
+        let mut args = vec![
+            "-o".to_string(),
+            format!("ControlPath={}", self.control_path.display()),
+        ];
+        if let Some(p) = self.port {
+            args.push("-p".into());
+            args.push(p.to_string());
+        }
+        if let Some(i) = &self.identity_file {
+            args.push("-i".into());
+            args.push(expand_tilde(i));
+        }
+        args
+    }
+
+    /// Command line run inside the terminal: an interactive session that also
+    /// becomes the control master for the SFTP channels.
+    pub fn terminal_argv(&self) -> Vec<String> {
+        let mut argv = vec![
+            "ssh".to_string(),
+            "-o".into(),
+            "ControlMaster=auto".into(),
+            "-o".into(),
+            // Keep the master alive in the background for a few seconds after
+            // the last client exits, so that the terminal process can exit
+            // as soon as the remote shell does.
+            "ControlPersist=5".into(),
+        ];
+        argv.extend(self.common_args());
+        argv.push(self.destination());
+        argv
+    }
+
+    /// True once the control master is up (i.e. the user has authenticated).
+    pub fn master_ready(&self) -> bool {
+        use std::os::unix::fs::FileTypeExt;
+        std::fs::metadata(&self.control_path).is_ok_and(|m| m.file_type().is_socket())
+    }
+
+    fn sftp_command(&self) -> Command {
+        let mut cmd = Command::new("ssh");
+        cmd.args(["-o", "ControlMaster=no", "-o", "BatchMode=yes", "-T"]);
+        cmd.args(self.common_args());
+        cmd.args(["-s", &self.destination(), "sftp"]);
+        cmd.stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::null());
+        cmd
+    }
+
+    /// Asks the control master to terminate (non blocking).
+    pub fn exit_master(&self) {
+        if !self.master_ready() {
+            return;
+        }
+        let mut cmd = Command::new("ssh");
+        cmd.args(self.common_args());
+        cmd.args(["-O", "exit", &self.destination()]);
+        cmd.stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null());
+        if let Ok(mut child) = cmd.spawn() {
+            std::thread::spawn(move || {
+                let _ = child.wait();
+            });
+        }
+    }
+}
+
+fn new_control_path() -> PathBuf {
+    let dir = glib::user_runtime_dir().join("riso");
+    let _ = std::fs::create_dir_all(&dir);
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let _ = std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o700));
+    }
+    let n = CONTROL_COUNTER.fetch_add(1, Ordering::Relaxed);
+    dir.join(format!("cm-{}-{n}", std::process::id()))
+}
+
+pub fn expand_tilde(path: &str) -> String {
+    if let Some(rest) = path.strip_prefix("~/") {
+        format!("{}/{rest}", glib::home_dir().display())
+    } else {
+        path.to_string()
+    }
+}
+
+/// Quotes a string for a POSIX shell.
+pub fn shell_quote(s: &str) -> String {
+    format!("'{}'", s.replace('\'', r"'\''"))
+}
+
+// ---------------------------------------------------------------------------
+// Worker
+// ---------------------------------------------------------------------------
+
+type Job = Box<dyn FnOnce(Option<&mut Sftp>) + Send>;
+
+/// An SFTP channel served by a dedicated background thread.
+///
+/// Operations are closures executed sequentially on the worker thread and
+/// awaited from the GTK main loop.
+pub struct Remote {
+    tx: RefCell<Option<mpsc::Sender<Job>>>,
+    child: Arc<Mutex<Option<Child>>>,
+}
+
+impl Remote {
+    pub fn start(target: &SshTarget) -> Self {
+        let (tx, rx) = mpsc::channel::<Job>();
+        let child_slot: Arc<Mutex<Option<Child>>> = Arc::default();
+        let slot = child_slot.clone();
+        let mut cmd = target.sftp_command();
+        std::thread::spawn(move || {
+            let sftp = (|| -> io::Result<Sftp> {
+                let mut child = cmd.spawn()?;
+                let stdin = child.stdin.take().unwrap();
+                let stdout = child.stdout.take().unwrap();
+                *slot.lock().unwrap() = Some(child);
+                Sftp::new(stdin, std::io::BufReader::with_capacity(256 * 1024, stdout))
+            })();
+            let mut sftp = match sftp {
+                Ok(s) => Some(s),
+                Err(e) => {
+                    eprintln!("riso: avvio SFTP fallito: {e}");
+                    None
+                }
+            };
+            while let Ok(job) = rx.recv() {
+                job(sftp.as_mut());
+            }
+        });
+        Remote {
+            tx: RefCell::new(Some(tx)),
+            child: child_slot,
+        }
+    }
+
+    /// Runs `f` on the worker thread and awaits its result.
+    pub async fn run<T, F>(&self, f: F) -> io::Result<T>
+    where
+        T: Send + 'static,
+        F: FnOnce(&mut Sftp) -> io::Result<T> + Send + 'static,
+    {
+        let (s, r) = async_channel::bounded(1);
+        let job: Job = Box::new(move |sftp| {
+            let res = match sftp {
+                Some(sftp) => f(sftp),
+                None => Err(io::Error::new(
+                    io::ErrorKind::NotConnected,
+                    "Canale SFTP non disponibile",
+                )),
+            };
+            let _ = s.send_blocking(res);
+        });
+        let sent = self
+            .tx
+            .borrow()
+            .as_ref()
+            .map(|tx| tx.send(job).is_ok())
+            .unwrap_or(false);
+        if !sent {
+            return Err(io::Error::new(io::ErrorKind::NotConnected, "Connessione chiusa"));
+        }
+        r.recv()
+            .await
+            .unwrap_or_else(|_| Err(io::Error::new(io::ErrorKind::NotConnected, "Connessione chiusa")))
+    }
+
+    /// Terminates the channel.
+    pub fn close(&self) {
+        self.tx.borrow_mut().take();
+        if let Some(mut child) = self.child.lock().unwrap().take() {
+            let _ = child.kill();
+            std::thread::spawn(move || {
+                let _ = child.wait();
+            });
+        }
+    }
+}
+
+impl Drop for Remote {
+    fn drop(&mut self) {
+        self.close();
+    }
+}
+
+/// Thread-safe progress counter shared between a transfer job and the UI.
+#[derive(Clone, Default)]
+pub struct Progress {
+    pub done: Arc<AtomicU64>,
+    pub total: Arc<AtomicU64>,
+}
+
+impl Progress {
+    pub fn add(&self, n: u64) {
+        self.done.fetch_add(n, Ordering::Relaxed);
+    }
+    pub fn set_total(&self, n: u64) {
+        self.total.store(n, Ordering::Relaxed);
+    }
+    pub fn fraction(&self) -> Option<f64> {
+        let total = self.total.load(Ordering::Relaxed);
+        (total > 0).then(|| (self.done.load(Ordering::Relaxed) as f64 / total as f64).min(1.0))
+    }
+}
