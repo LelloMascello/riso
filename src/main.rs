@@ -23,7 +23,7 @@ fn main() -> glib::ExitCode {
     app.connect_startup(|app| {
         if let Some(display) = gdk::Display::default() {
             icons::register(&display);
-            theme::init(&display);
+            theme::init(app, &display);
         }
 
         let quit = gio::SimpleAction::new("quit", None);
