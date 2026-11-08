@@ -489,16 +489,16 @@ async fn open_with_dialog(parent: &gtk::Widget, local: &Path) {
     dialog.set_content_width(400);
 
     let vbox = gtk::Box::new(gtk::Orientation::Vertical, 0);
-    vbox.add_css_class("vs-picker-dialog");
+    vbox.add_css_class("picker-dialog");
 
     let entry = gtk::Entry::new();
-    entry.set_placeholder_text(Some("Comando o applicazione (es. nvim, code)…"));
-    entry.add_css_class("vs-input");
+    entry.set_placeholder_text(Some("Comando o applicazione (es. nvim, helix)…"));
+    entry.add_css_class("picker-input");
     vbox.append(&entry);
 
     let list_box = gtk::ListBox::new();
     list_box.set_selection_mode(gtk::SelectionMode::Single);
-    list_box.add_css_class("vs-list");
+    list_box.add_css_class("picker-list");
 
     let scrolled = gtk::ScrolledWindow::new();
     scrolled.set_hscrollbar_policy(gtk::PolicyType::Never);
@@ -546,14 +546,14 @@ async fn open_with_dialog(parent: &gtk::Widget, local: &Path) {
                     continue;
                 }
                 let hbox = gtk::Box::new(gtk::Orientation::Horizontal, 8);
-                hbox.add_css_class("vs-row");
+                hbox.add_css_class("picker-row");
                 let lbl = gtk::Label::new(Some(title));
                 lbl.set_xalign(0.0);
                 lbl.set_hexpand(true);
                 hbox.append(&lbl);
                 if !sub.is_empty() {
                     let muted = gtk::Label::new(Some(sub));
-                    muted.add_css_class("vs-muted");
+                    muted.add_css_class("muted-label");
                     hbox.append(&muted);
                 }
                 let row = gtk::ListBoxRow::new();

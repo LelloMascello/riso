@@ -1,4 +1,4 @@
-//! Minimal VS Code-style main window: single unified top tab bar where every
+//! Main application window: single unified top tab bar where every
 //! tab opens directly into an SSH session view.
 
 use std::cell::{Cell, RefCell};
@@ -46,18 +46,18 @@ impl AppWindow {
         tab_menu.append(Some("Chiudi le altre"), Some("win.close-other-tabs"));
         tab_view.set_menu_model(Some(&tab_menu));
 
-        // -- Single Unified VS Code Top Bar ----------------------------------
-        let sidebar_btn = gtk::Button::from_icon_name("vs-sidebar-symbolic");
+        // -- Unified Top Bar -------------------------------------------------
+        let sidebar_btn = gtk::Button::from_icon_name("riso-sidebar-symbolic");
         sidebar_btn.add_css_class("flat");
-        sidebar_btn.add_css_class("vs-topbar-btn");
+        sidebar_btn.add_css_class("topbar-btn");
         sidebar_btn.set_action_name(Some("win.toggle-sidebar"));
         sidebar_btn.set_tooltip_text(Some("Esplora file (Ctrl+Shift+B)"));
         sidebar_btn.set_valign(gtk::Align::Center);
         sidebar_btn.set_margin_start(6);
 
-        let add_btn = gtk::Button::from_icon_name("vs-plus-symbolic");
+        let add_btn = gtk::Button::from_icon_name("riso-plus-symbolic");
         add_btn.add_css_class("flat");
-        add_btn.add_css_class("vs-topbar-btn");
+        add_btn.add_css_class("topbar-btn");
         add_btn.set_action_name(Some("win.new-tab"));
         add_btn.set_tooltip_text(Some("Nuova connessione (Ctrl+Shift+T)"));
         add_btn.set_valign(gtk::Align::Center);
@@ -67,7 +67,7 @@ impl AppWindow {
         tab_bar.set_autohide(false);
         tab_bar.set_expand_tabs(false);
         tab_bar.add_css_class("inline");
-        tab_bar.add_css_class("vs-tabbar");
+        tab_bar.add_css_class("session-tabbar");
         tab_bar.set_hexpand(true);
         tab_bar.set_end_action_widget(Some(&add_btn));
 
@@ -75,7 +75,7 @@ impl AppWindow {
         let end_controls = gtk::WindowControls::new(gtk::PackType::End);
 
         let top_row = gtk::Box::new(gtk::Orientation::Horizontal, 2);
-        top_row.add_css_class("vs-topbar");
+        top_row.add_css_class("topbar");
         top_row.append(&start_controls);
         top_row.append(&sidebar_btn);
         top_row.append(&tab_bar);

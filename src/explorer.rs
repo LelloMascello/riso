@@ -1,4 +1,4 @@
-//! Minimal VS Code-style SFTP file explorer.
+//! Integrated SFTP file explorer.
 
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
@@ -136,33 +136,33 @@ impl Explorer {
 
     fn build(session_id: u64, weak: Weak<Explorer>) -> Self {
         let widget = gtk::Box::new(gtk::Orientation::Vertical, 0);
-        widget.add_css_class("vs-explorer");
+        widget.add_css_class("explorer-sidebar");
 
-        // -- Minimal VS Code Header Bar --------------------------------------
+        // -- Explorer Toolbar ------------------------------------------------
         let toolbar = gtk::Box::new(gtk::Orientation::Horizontal, 2);
-        toolbar.add_css_class("vs-explorer-bar");
+        toolbar.add_css_class("explorer-toolbar");
 
         let path_entry = gtk::Entry::new();
         path_entry.set_hexpand(true);
         path_entry.set_placeholder_text(Some("/"));
-        path_entry.add_css_class("vs-path-entry");
+        path_entry.add_css_class("path-entry");
 
         let mk_btn = |icon: &str, tip: &str, action: &str| {
             let b = gtk::Button::from_icon_name(icon);
             b.add_css_class("flat");
-            b.add_css_class("vs-icon-btn");
+            b.add_css_class("icon-btn");
             b.set_tooltip_text(Some(tip));
             b.set_action_name(Some(action));
             b
         };
-        let up_btn = mk_btn("vs-up-symbolic", "Cartella superiore", "explorer.up");
-        let new_file_btn = mk_btn("vs-new-file-symbolic", "Nuovo file", "explorer.new-file");
+        let up_btn = mk_btn("riso-up-symbolic", "Cartella superiore", "explorer.up");
+        let new_file_btn = mk_btn("riso-new-file-symbolic", "Nuovo file", "explorer.new-file");
         let new_dir_btn = mk_btn(
-            "vs-new-folder-symbolic",
+            "riso-new-folder-symbolic",
             "Nuova cartella",
             "explorer.new-folder",
         );
-        let refresh_btn = mk_btn("vs-refresh-symbolic", "Aggiorna", "explorer.refresh");
+        let refresh_btn = mk_btn("riso-refresh-symbolic", "Aggiorna", "explorer.refresh");
 
         toolbar.append(&path_entry);
         toolbar.append(&up_btn);
@@ -171,9 +171,9 @@ impl Explorer {
         toolbar.append(&refresh_btn);
         widget.append(&toolbar);
 
-        // -- Thin 2px VS Code progress line ----------------------------------
+        // -- Thin 2px transfer progress line ---------------------------------
         let progress_bar = gtk::ProgressBar::new();
-        progress_bar.add_css_class("vs-thin-progress");
+        progress_bar.add_css_class("thin-progress");
         progress_bar.set_visible(false);
         widget.append(&progress_bar);
 
@@ -206,7 +206,7 @@ impl Explorer {
             let hbox = gtk::Box::new(gtk::Orientation::Horizontal, 6);
             let icon = gtk::Image::new();
             icon.set_pixel_size(14);
-            icon.add_css_class("vs-tree-icon");
+            icon.add_css_class("explorer-tree-icon");
             let name = gtk::Label::new(None);
             name.set_xalign(0.0);
             name.set_hexpand(true);
@@ -233,9 +233,9 @@ impl Explorer {
             if entry.is_dir {
                 let set_folder_icon = |ic: &gtk::Image, expanded: bool| {
                     ic.set_icon_name(Some(if expanded {
-                        "vs-folder-open-symbolic"
+                        "riso-folder-open-symbolic"
                     } else {
-                        "vs-folder-symbolic"
+                        "riso-folder-symbolic"
                     }));
                 };
                 set_folder_icon(&icon, row.is_expanded());
@@ -243,23 +243,23 @@ impl Explorer {
                 let id = row.connect_expanded_notify(move |r| {
                     if let Some(ic) = ic.upgrade() {
                         ic.set_icon_name(Some(if r.is_expanded() {
-                            "vs-folder-open-symbolic"
+                            "riso-folder-open-symbolic"
                         } else {
-                            "vs-folder-symbolic"
+                            "riso-folder-symbolic"
                         }));
                     }
                 });
                 let key = item.as_ptr() as usize;
                 sigs_bind.borrow_mut().insert(key, (row.downgrade(), id));
             } else {
-                icon.set_icon_name(Some("vs-file-symbolic"));
+                icon.set_icon_name(Some("riso-file-symbolic"));
             }
 
             name.set_text(&entry.name);
             if entry.name.starts_with('.') {
-                name.add_css_class("vs-hidden-entry");
+                name.add_css_class("hidden-entry");
             } else {
-                name.remove_css_class("vs-hidden-entry");
+                name.remove_css_class("hidden-entry");
             }
             expander.set_tooltip_text(Some(&entry.tooltip()));
         });
@@ -279,7 +279,7 @@ impl Explorer {
         });
 
         let list_view = gtk::ListView::new(Some(selection.clone()), Some(factory));
-        list_view.add_css_class("vs-tree");
+        list_view.add_css_class("explorer-tree");
         list_view.set_enable_rubberband(true);
         let scrolled = gtk::ScrolledWindow::new();
         scrolled.set_child(Some(&list_view));
@@ -288,7 +288,7 @@ impl Explorer {
 
         // -- Minimal text placeholder ----------------------------------------
         let placeholder_label = gtk::Label::new(Some("In attesa di connessione"));
-        placeholder_label.add_css_class("vs-muted");
+        placeholder_label.add_css_class("muted-label");
         placeholder_label.set_wrap(true);
         placeholder_label.set_justify(gtk::Justification::Center);
         placeholder_label.set_margin_start(16);
@@ -1242,7 +1242,7 @@ impl Explorer {
                 if internal {
                     gdk::DragAction::MOVE
                 } else {
-                    list_view.add_css_class("vs-drop-active");
+                    list_view.add_css_class("drop-active");
                     gdk::DragAction::COPY
                 }
             }
@@ -1250,12 +1250,12 @@ impl Explorer {
         target.connect_leave(glib::clone!(
             #[weak(rename_to = list_view)]
             self.list_view,
-            move |_| list_view.remove_css_class("vs-drop-active")
+            move |_| list_view.remove_css_class("drop-active")
         ));
         let weak = Rc::downgrade(self);
         target.connect_drop(move |_, value, x, y| {
             let Some(this) = weak.upgrade() else { return false };
-            this.list_view.remove_css_class("vs-drop-active");
+            this.list_view.remove_css_class("drop-active");
             if !this.is_attached() {
                 return false;
             }

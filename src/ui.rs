@@ -9,14 +9,6 @@ use vte4::prelude::*;
 
 pub type PasteHook = Rc<RefCell<Option<Box<dyn Fn() -> bool>>>>;
 
-// VS Code Dark Modern terminal palette
-const PALETTE: [&str; 16] = [
-    "#181818", "#cd3131", "#0dbc79", "#e5e510", "#2472c8", "#bc3fbc", "#11a8cd", "#e5e5e5",
-    "#666666", "#f14c4c", "#23d18b", "#f5f543", "#3b8eea", "#d670d6", "#29b8db", "#ffffff",
-];
-const FOREGROUND: &str = "#cccccc";
-const BACKGROUND: &str = "#1f1f1f";
-
 pub fn new_terminal() -> (vte4::Terminal, PasteHook) {
     let term = vte4::Terminal::new();
     let paste_hook: PasteHook = Rc::default();
@@ -28,17 +20,8 @@ pub fn new_terminal() -> (vte4::Terminal, PasteHook) {
     term.set_enable_fallback_scrolling(true);
     term.set_scroll_on_keystroke(true);
     term.set_font(Some(&pango::FontDescription::from_string("Monospace 11")));
-    term.add_css_class("vs-terminal");
-
-    let rgba = |s: &str| gdk::RGBA::parse(s).unwrap();
-    let palette: Vec<gdk::RGBA> = PALETTE.iter().map(|c| rgba(c)).collect();
-    let palette_refs: Vec<&gdk::RGBA> = palette.iter().collect();
-    term.set_colors(
-        Some(&rgba(FOREGROUND)),
-        Some(&rgba(BACKGROUND)),
-        &palette_refs,
-    );
-    term.set_color_cursor(Some(&rgba("#aeafad")));
+    term.add_css_class("session-terminal");
+    crate::theme::bind_terminal(&term);
     term.set_margin_start(8);
     term.set_margin_top(6);
 

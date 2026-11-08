@@ -92,7 +92,7 @@ impl Session {
         let explorer = Explorer::new(id);
 
         let widget = gtk::Box::new(gtk::Orientation::Vertical, 0);
-        widget.add_css_class("vs-session");
+        widget.add_css_class("session-view");
 
         let term_overlay = gtk::Overlay::new();
         term_overlay.set_child(Some(&terminal_scroller(&terminal)));
@@ -111,18 +111,18 @@ impl Session {
         explorer.widget.set_size_request(180, -1);
         widget.append(&paned);
 
-        // Minimal 22px VS Code status strip (no repeated host or path)
+        // Minimal 22px status strip (no repeated host or path)
         let status = gtk::Box::new(gtk::Orientation::Horizontal, 8);
-        status.add_css_class("vs-statusbar");
+        status.add_css_class("statusbar");
 
         let status_dot = gtk::Label::new(Some("●"));
-        status_dot.add_css_class("vs-dot");
+        status_dot.add_css_class("status-dot");
         status_dot.set_visible(false);
         let status_label = gtk::Label::new(None);
 
         let reconnect_btn = gtk::Button::with_label("Riconnetti");
         reconnect_btn.add_css_class("flat");
-        reconnect_btn.add_css_class("vs-status-btn");
+        reconnect_btn.add_css_class("status-btn");
         reconnect_btn.set_visible(false);
 
         let spacer = gtk::Box::new(gtk::Orientation::Horizontal, 0);
@@ -130,7 +130,7 @@ impl Session {
 
         let sync_label = gtk::Label::new(None);
         sync_label.set_visible(false);
-        sync_label.add_css_class("vs-sync-badge");
+        sync_label.add_css_class("sync-badge");
 
         status.append(&status_dot);
         status.append(&status_label);
@@ -142,11 +142,11 @@ impl Session {
         // Inline host completion popover anchored to the terminal cursor
         let suggest_list = gtk::ListBox::new();
         suggest_list.set_selection_mode(gtk::SelectionMode::Single);
-        suggest_list.add_css_class("vs-suggest-list");
+        suggest_list.add_css_class("suggest-list");
         suggest_list.set_can_focus(false);
 
         let suggest_popover = gtk::Popover::new();
-        suggest_popover.add_css_class("vs-suggest-popover");
+        suggest_popover.add_css_class("suggest-popover");
         suggest_popover.set_has_arrow(false);
         suggest_popover.set_autohide(false);
         suggest_popover.set_can_focus(false);
@@ -1168,22 +1168,22 @@ fn active_host_token(input: &[char], cursor: usize) -> Option<(usize, usize, Str
 
 fn build_drop_overlay() -> gtk::Box {
     let outer = gtk::Box::new(gtk::Orientation::Vertical, 0);
-    outer.add_css_class("vs-drop-overlay");
+    outer.add_css_class("drop-overlay");
     outer.set_visible(false);
     outer.set_can_target(false);
     outer.set_hexpand(true);
     outer.set_vexpand(true);
 
     let card = gtk::Box::new(gtk::Orientation::Vertical, 6);
-    card.add_css_class("vs-drop-card");
+    card.add_css_class("drop-card");
     card.set_halign(gtk::Align::Center);
     card.set_valign(gtk::Align::Center);
     card.set_vexpand(true);
 
-    let icon = gtk::Image::from_icon_name("vs-upload-symbolic");
+    let icon = gtk::Image::from_icon_name("riso-upload-symbolic");
     icon.set_pixel_size(24);
     let title = gtk::Label::new(Some("Rilascia per caricare"));
-    title.add_css_class("vs-muted");
+    title.add_css_class("muted-label");
 
     card.append(&icon);
     card.append(&title);
@@ -1280,7 +1280,7 @@ fn terminal_scroller(terminal: &vte4::Terminal) -> gtk::ScrolledWindow {
     scrolled.set_hscrollbar_policy(gtk::PolicyType::Never);
     scrolled.set_hexpand(true);
     scrolled.set_vexpand(true);
-    scrolled.add_css_class("vs-terminal-box");
+    scrolled.add_css_class("terminal-box");
     scrolled
 }
 
