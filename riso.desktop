@@ -1,6 +1,6 @@
 [Desktop Entry]
 Type=Application
-Name=RISO
+Name=Riso
 Comment=Remote Interface for SSH Operations
 Exec=riso
 Icon=riso-icon

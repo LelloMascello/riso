@@ -19,11 +19,14 @@ pub fn new_terminal() -> (vte4::Terminal, PasteHook) {
     term.set_audible_bell(false);
     term.set_enable_fallback_scrolling(true);
     term.set_scroll_on_keystroke(true);
-    term.set_font(Some(&pango::FontDescription::from_string("Monospace 11")));
+    term.set_font(Some(&pango::FontDescription::from_string("Monospace 10.5")));
+    term.set_cell_height_scale(1.08);
     term.add_css_class("session-terminal");
     crate::theme::bind_terminal(&term);
-    term.set_margin_start(8);
-    term.set_margin_top(6);
+    term.set_margin_start(12);
+    term.set_margin_end(6);
+    term.set_margin_top(8);
+    term.set_margin_bottom(4);
 
     let actions = gio::SimpleActionGroup::new();
     let copy = gio::SimpleAction::new("copy", None);
@@ -170,6 +173,7 @@ pub async fn prompt(
     dialog.set_default_response(Some("ok"));
     dialog.set_close_response("cancel");
     let entry = gtk::Entry::new();
+    entry.add_css_class("zed-dialog-entry");
     entry.set_text(initial);
     entry.set_activates_default(true);
     dialog.set_extra_child(Some(&entry));

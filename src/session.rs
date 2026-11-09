@@ -62,20 +62,33 @@ impl PromptState {
     }
 }
 
+pub struct StatusSnapshot {
+    pub dot_class: &'static str,
+    pub status_text: String,
+    pub sync_text: Option<String>,
+    pub target_label: Option<String>,
+    pub cwd: String,
+}
+
 pub struct Session {
     pub widget: gtk::Box,
     pub terminal: vte4::Terminal,
+    pub explorer: Rc<Explorer>,
     store: Rc<HostStore>,
     parsed: RefCell<Option<ParsedSsh>>,
     target: RefCell<Option<SshTarget>>,
-    explorer: Rc<Explorer>,
     page: RefCell<Option<adw::TabPage>>,
-    on_title_changed: Box<dyn Fn()>,
+    on_state_changed: Box<dyn Fn()>,
 
-    status_dot: gtk::Label,
-    status_label: gtk::Label,
+    crumb_target: gtk::Label,
+    crumb_cwd_sep: gtk::Label,
+    crumb_cwd: gtk::Label,
     reconnect_btn: gtk::Button,
-    sync_label: gtk::Label,
+    upload_btn: gtk::Button,
+
+    dot_class: Cell<&'static str>,
+    status_text: RefCell<String>,
+    sync_text: RefCell<Option<String>>,
 
     prompt: RefCell<PromptState>,
     suggest_popover: gtk::Popover,
@@ -86,7 +99,7 @@ pub struct Session {
 }
 
 impl Session {
-    pub fn new(store: Rc<HostStore>, on_title_changed: impl Fn() + 'static) -> Rc<Self> {
+    pub fn new(store: Rc<HostStore>, on_state_changed: impl Fn() + 'static) -> Rc<Self> {
         let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
         let (terminal, paste_hook) = ui::new_terminal();
         let explorer = Explorer::new(id);
@@ -94,50 +107,64 @@ impl Session {
         let widget = gtk::Box::new(gtk::Orientation::Vertical, 0);
         widget.add_css_class("session-view");
 
+        // -- Zed-style Breadcrumb / Session Sub-header Bar -------------------
+        let subheader = gtk::Box::new(gtk::Orientation::Horizontal, 0);
+        subheader.add_css_class("zed-subheader");
+
+        let crumb_root = gtk::Label::new(Some("ssh"));
+        crumb_root.add_css_class("zed-crumb-root");
+
+        let crumb_sep = gtk::Label::new(Some("›"));
+        crumb_sep.add_css_class("zed-crumb-sep");
+
+        let crumb_target = gtk::Label::new(Some("nuova sessione"));
+        crumb_target.add_css_class("zed-crumb-target");
+        crumb_target.set_xalign(0.0);
+
+        let crumb_cwd_sep = gtk::Label::new(Some("›"));
+        crumb_cwd_sep.add_css_class("zed-crumb-sep");
+        crumb_cwd_sep.set_visible(false);
+
+        let crumb_cwd = gtk::Label::new(None);
+        crumb_cwd.add_css_class("zed-crumb-path");
+        crumb_cwd.set_xalign(0.0);
+        crumb_cwd.set_ellipsize(gtk::pango::EllipsizeMode::Middle);
+        crumb_cwd.set_visible(false);
+
+        let sub_spacer = gtk::Box::new(gtk::Orientation::Horizontal, 0);
+        sub_spacer.set_hexpand(true);
+
+        let reconnect_btn = gtk::Button::with_label("Riconnetti");
+        reconnect_btn.add_css_class("zed-action-btn");
+        reconnect_btn.set_valign(gtk::Align::Center);
+        reconnect_btn.set_visible(false);
+
+        let upload_btn = gtk::Button::from_icon_name("riso-upload-symbolic");
+        upload_btn.add_css_class("flat");
+        upload_btn.add_css_class("subheader-icon-btn");
+        upload_btn.set_tooltip_text(Some("Carica file nella cartella corrente"));
+        upload_btn.set_valign(gtk::Align::Center);
+        upload_btn.set_visible(false);
+
+        subheader.append(&crumb_root);
+        subheader.append(&crumb_sep);
+        subheader.append(&crumb_target);
+        subheader.append(&crumb_cwd_sep);
+        subheader.append(&crumb_cwd);
+        subheader.append(&sub_spacer);
+        subheader.append(&reconnect_btn);
+        subheader.append(&upload_btn);
+        widget.append(&subheader);
+
+        // -- Terminal Canvas + Drop Overlay ----------------------------------
         let term_overlay = gtk::Overlay::new();
         term_overlay.set_child(Some(&terminal_scroller(&terminal)));
+        term_overlay.set_vexpand(true);
+        term_overlay.set_hexpand(true);
         let drop_overlay = build_drop_overlay();
         term_overlay.add_overlay(&drop_overlay);
         setup_terminal_drop(&term_overlay, &terminal, &explorer, &drop_overlay);
-
-        let paned = gtk::Paned::new(gtk::Orientation::Horizontal);
-        paned.set_start_child(Some(&explorer.widget));
-        paned.set_end_child(Some(&term_overlay));
-        paned.set_position(260);
-        paned.set_resize_start_child(false);
-        paned.set_shrink_start_child(false);
-        paned.set_shrink_end_child(false);
-        paned.set_vexpand(true);
-        explorer.widget.set_size_request(180, -1);
-        widget.append(&paned);
-
-        // Minimal 22px status strip (no repeated host or path)
-        let status = gtk::Box::new(gtk::Orientation::Horizontal, 8);
-        status.add_css_class("statusbar");
-
-        let status_dot = gtk::Label::new(Some("●"));
-        status_dot.add_css_class("status-dot");
-        status_dot.set_visible(false);
-        let status_label = gtk::Label::new(None);
-
-        let reconnect_btn = gtk::Button::with_label("Riconnetti");
-        reconnect_btn.add_css_class("flat");
-        reconnect_btn.add_css_class("status-btn");
-        reconnect_btn.set_visible(false);
-
-        let spacer = gtk::Box::new(gtk::Orientation::Horizontal, 0);
-        spacer.set_hexpand(true);
-
-        let sync_label = gtk::Label::new(None);
-        sync_label.set_visible(false);
-        sync_label.add_css_class("sync-badge");
-
-        status.append(&status_dot);
-        status.append(&status_label);
-        status.append(&reconnect_btn);
-        status.append(&spacer);
-        status.append(&sync_label);
-        widget.append(&status);
+        widget.append(&term_overlay);
 
         // Inline host completion popover anchored to the terminal cursor
         let suggest_list = gtk::ListBox::new();
@@ -161,16 +188,20 @@ impl Session {
         let this = Rc::new(Session {
             widget,
             terminal,
+            explorer,
             store,
             parsed: RefCell::new(None),
             target: RefCell::new(None),
-            explorer,
             page: RefCell::default(),
-            on_title_changed: Box::new(on_title_changed),
-            status_dot,
-            status_label,
+            on_state_changed: Box::new(on_state_changed),
+            crumb_target,
+            crumb_cwd_sep,
+            crumb_cwd,
             reconnect_btn,
-            sync_label,
+            upload_btn,
+            dot_class: Cell::new("idle"),
+            status_text: RefCell::new("Pronto".to_string()),
+            sync_text: RefCell::new(None),
             prompt: RefCell::new(PromptState::new()),
             suggest_popover,
             suggest_list,
@@ -211,15 +242,57 @@ impl Session {
 
     pub fn window_title(&self) -> String {
         if self.target.borrow().is_some() {
-            self.tab_title()
+            format!("riso — {}", self.tab_title())
         } else {
-            "SSH".to_string()
+            "riso".to_string()
+        }
+    }
+
+    pub fn titlebar_context(&self) -> String {
+        if let Some(target) = self.target.borrow().as_ref() {
+            target.label()
+        } else {
+            "ssh".to_string()
+        }
+    }
+
+    pub fn status_snapshot(&self) -> StatusSnapshot {
+        StatusSnapshot {
+            dot_class: self.dot_class.get(),
+            status_text: self.status_text.borrow().clone(),
+            sync_text: self.sync_text.borrow().clone(),
+            target_label: self.target.borrow().as_ref().map(SshTarget::label),
+            cwd: self.explorer.cwd(),
         }
     }
 
     pub fn set_page(&self, page: &adw::TabPage) {
         *self.page.borrow_mut() = Some(page.clone());
         self.refresh_titles();
+    }
+
+    fn refresh_subheader(&self) {
+        if let Some(target) = self.target.borrow().as_ref() {
+            self.crumb_target.set_text(&target.label());
+            if self.state.get() == State::Connected {
+                self.crumb_target.add_css_class("active");
+            } else {
+                self.crumb_target.remove_css_class("active");
+            }
+        } else {
+            self.crumb_target.set_text("nuova sessione");
+            self.crumb_target.remove_css_class("active");
+        }
+
+        let cwd = self.explorer.cwd();
+        let has_cwd = !cwd.is_empty() && self.state.get() == State::Connected;
+        self.crumb_cwd_sep.set_visible(has_cwd);
+        self.crumb_cwd.set_visible(has_cwd);
+        if has_cwd {
+            self.crumb_cwd.set_text(&cwd);
+        }
+        self.upload_btn
+            .set_visible(self.state.get() == State::Connected && self.explorer.is_attached());
     }
 
     fn refresh_titles(&self) {
@@ -235,13 +308,8 @@ impl Session {
                 .unwrap_or_default();
             page.set_tooltip(&glib::markup_escape_text(&tooltip));
         }
-        (self.on_title_changed)();
-    }
-
-    pub fn toggle_explorer(&self) {
-        self.explorer
-            .widget
-            .set_visible(!self.explorer.widget.is_visible());
+        self.refresh_subheader();
+        (self.on_state_changed)();
     }
 
     /// Starts the tab in waiting-for-connection mode with `[user@host ~]$ ssh `.
@@ -880,6 +948,13 @@ impl Session {
         });
 
         let weak = Rc::downgrade(self);
+        self.upload_btn.connect_clicked(move |_| {
+            if let Some(this) = weak.upgrade() {
+                this.explorer.prompt_upload();
+            }
+        });
+
+        let weak = Rc::downgrade(self);
         self.explorer.connect_cd_terminal(move |dir| {
             let Some(this) = weak.upgrade() else { return };
             if this.state.get() != State::Connected {
@@ -891,19 +966,23 @@ impl Session {
         });
 
         let weak = Rc::downgrade(self);
+        self.explorer.connect_cwd_changed(move |_| {
+            if let Some(this) = weak.upgrade() {
+                this.refresh_subheader();
+                (this.on_state_changed)();
+            }
+        });
+
+        let weak = Rc::downgrade(self);
         self.explorer.edits.connect_changed(move |files| {
             let Some(this) = weak.upgrade() else { return };
-            match files {
-                [] => this.sync_label.set_visible(false),
-                [single] => {
-                    this.sync_label.set_text(&format!("⟳ {single}"));
-                    this.sync_label.set_visible(true);
-                }
-                many => {
-                    this.sync_label.set_text(&format!("⟳ {} in sync", many.len()));
-                    this.sync_label.set_visible(true);
-                }
-            }
+            let badge = match files {
+                [] => None,
+                [single] => Some(format!("⟳ {single}")),
+                many => Some(format!("⟳ {} in sync", many.len())),
+            };
+            *this.sync_text.borrow_mut() = badge;
+            (this.on_state_changed)();
         });
 
         let weak = Rc::downgrade(self);
@@ -917,13 +996,11 @@ impl Session {
         });
     }
 
-    fn set_status(&self, dot_class: &str, text: &str) {
-        for c in ["ok", "wait", "err"] {
-            self.status_dot.remove_css_class(c);
-        }
-        self.status_dot.add_css_class(dot_class);
-        self.status_dot.set_visible(true);
-        self.status_label.set_text(text);
+    fn set_status(&self, dot_class: &'static str, text: &str) {
+        self.dot_class.set(dot_class);
+        *self.status_text.borrow_mut() = text.to_string();
+        self.refresh_subheader();
+        (self.on_state_changed)();
     }
 
     fn connect(self: &Rc<Self>) {
@@ -931,6 +1008,7 @@ impl Session {
         self.suggest_popover.popdown();
         self.state.set(State::Connecting);
         self.reconnect_btn.set_visible(false);
+        self.upload_btn.set_visible(false);
         self.set_status("wait", "Connessione…");
         if let Some(page) = self.page.borrow().as_ref() {
             page.set_loading(true);
@@ -968,7 +1046,6 @@ impl Session {
     fn on_connected(self: &Rc<Self>) {
         let Some(target) = self.target.borrow().clone() else { return };
         self.state.set(State::Connected);
-        self.set_status("ok", "Connesso");
         if let Some(page) = self.page.borrow().as_ref() {
             page.set_loading(false);
         }
@@ -981,6 +1058,7 @@ impl Session {
             .map(|p| p.conn.initial_dir.trim().to_string())
             .filter(|s| !s.is_empty());
         self.explorer.attach(browse, transfer, initial);
+        self.set_status("ok", "Connesso");
     }
 
     fn on_ssh_exited(self: &Rc<Self>, status: i32) {
@@ -988,6 +1066,7 @@ impl Session {
             return;
         }
         let was_connected = self.state.get() == State::Connected;
+        self.state.set(State::Prompt);
         if let Some(id) = self.poll.borrow_mut().take() {
             id.remove();
         }
@@ -1005,9 +1084,10 @@ impl Session {
         } else {
             "In attesa di connessione"
         });
-        self.set_status("err", &status_txt);
+        self.upload_btn.set_visible(false);
         self.reconnect_btn
             .set_visible(self.parsed.borrow().is_some());
+        self.set_status("err", &status_txt);
         if let Some(page) = self.page.borrow().as_ref() {
             page.set_loading(false);
             if !page.is_selected() {

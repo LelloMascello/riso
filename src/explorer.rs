@@ -125,6 +125,7 @@ pub struct Explorer {
     current_progress: RefCell<Option<Progress>>,
     pub edits: Rc<EditSync>,
     on_cd_terminal: RefCell<Option<Box<dyn Fn(&str)>>>,
+    on_cwd_changed: RefCell<Option<Box<dyn Fn(&str)>>>,
 }
 
 impl Explorer {
@@ -138,9 +139,13 @@ impl Explorer {
         let widget = gtk::Box::new(gtk::Orientation::Vertical, 0);
         widget.add_css_class("explorer-sidebar");
 
-        // -- Explorer Toolbar ------------------------------------------------
+        // -- Zed-style 34px Explorer Header Bar ------------------------------
         let toolbar = gtk::Box::new(gtk::Orientation::Horizontal, 2);
         toolbar.add_css_class("explorer-toolbar");
+
+        let header_icon = gtk::Image::from_icon_name("riso-folder-symbolic");
+        header_icon.set_pixel_size(14);
+        header_icon.add_css_class("explorer-header-icon");
 
         let path_entry = gtk::Entry::new();
         path_entry.set_hexpand(true);
@@ -153,6 +158,7 @@ impl Explorer {
             b.add_css_class("icon-btn");
             b.set_tooltip_text(Some(tip));
             b.set_action_name(Some(action));
+            b.set_valign(gtk::Align::Center);
             b
         };
         let up_btn = mk_btn("riso-up-symbolic", "Cartella superiore", "explorer.up");
@@ -164,11 +170,37 @@ impl Explorer {
         );
         let refresh_btn = mk_btn("riso-refresh-symbolic", "Aggiorna", "explorer.refresh");
 
+        let opts_model = gio::Menu::new();
+        let opts_s1 = gio::Menu::new();
+        opts_s1.append(Some("Carica…"), Some("explorer.upload"));
+        opts_s1.append(Some("Copia percorso"), Some("explorer.copy-path"));
+        opts_s1.append(Some("Apri nel terminale"), Some("explorer.cd-terminal"));
+        let opts_s2 = gio::Menu::new();
+        opts_s2.append(Some("Mostra file nascosti"), Some("explorer.show-hidden"));
+        opts_s2.append(
+            Some("Segui directory terminale"),
+            Some("explorer.follow-terminal"),
+        );
+        opts_model.append_section(None, &opts_s1);
+        opts_model.append_section(None, &opts_s2);
+        let opts_popover = gtk::PopoverMenu::from_model(Some(&opts_model));
+        opts_popover.set_has_arrow(false);
+
+        let more_btn = gtk::MenuButton::new();
+        more_btn.set_icon_name("riso-dots-symbolic");
+        more_btn.set_popover(Some(&opts_popover));
+        more_btn.add_css_class("flat");
+        more_btn.add_css_class("icon-btn");
+        more_btn.set_tooltip_text(Some("Opzioni esplora file"));
+        more_btn.set_valign(gtk::Align::Center);
+
+        toolbar.append(&header_icon);
         toolbar.append(&path_entry);
         toolbar.append(&up_btn);
         toolbar.append(&new_file_btn);
         toolbar.append(&new_dir_btn);
         toolbar.append(&refresh_btn);
+        toolbar.append(&more_btn);
         widget.append(&toolbar);
 
         // -- Thin 2px transfer progress line ---------------------------------
@@ -211,8 +243,13 @@ impl Explorer {
             name.set_xalign(0.0);
             name.set_hexpand(true);
             name.set_ellipsize(gtk::pango::EllipsizeMode::End);
+            let meta = gtk::Label::new(None);
+            meta.set_xalign(1.0);
+            meta.add_css_class("explorer-entry-meta");
+            meta.set_visible(false);
             hbox.append(&icon);
             hbox.append(&name);
+            hbox.append(&meta);
             expander.set_child(Some(&hbox));
             item.set_child(Some(&expander));
         });
@@ -229,6 +266,7 @@ impl Explorer {
             let hbox = expander.child().and_downcast::<gtk::Box>().unwrap();
             let icon = hbox.first_child().and_downcast::<gtk::Image>().unwrap();
             let name = icon.next_sibling().and_downcast::<gtk::Label>().unwrap();
+            let meta = name.next_sibling().and_downcast::<gtk::Label>().unwrap();
 
             if entry.is_dir {
                 let set_folder_icon = |ic: &gtk::Image, expanded: bool| {
@@ -251,8 +289,17 @@ impl Explorer {
                 });
                 let key = item.as_ptr() as usize;
                 sigs_bind.borrow_mut().insert(key, (row.downgrade(), id));
+                if entry.is_link {
+                    meta.set_text("→");
+                    meta.set_visible(true);
+                } else {
+                    meta.set_text("");
+                    meta.set_visible(false);
+                }
             } else {
                 icon.set_icon_name(Some("riso-file-symbolic"));
+                meta.set_text(&ui::human_size(entry.size));
+                meta.set_visible(true);
             }
 
             name.set_text(&entry.name);
@@ -361,6 +408,7 @@ impl Explorer {
             current_progress: RefCell::default(),
             edits,
             on_cd_terminal: RefCell::default(),
+            on_cwd_changed: RefCell::default(),
         }
     }
 
@@ -420,6 +468,9 @@ impl Explorer {
         self.path_entry.set_text("");
         self.set_browsing_enabled(false);
         self.set_placeholder(message);
+        if let Some(f) = self.on_cwd_changed.borrow().as_ref() {
+            f("");
+        }
     }
 
     pub fn show_waiting(&self) {
@@ -436,6 +487,16 @@ impl Explorer {
 
     pub fn connect_cd_terminal(&self, f: impl Fn(&str) + 'static) {
         *self.on_cd_terminal.borrow_mut() = Some(Box::new(f));
+    }
+
+    pub fn connect_cwd_changed(&self, f: impl Fn(&str) + 'static) {
+        *self.on_cwd_changed.borrow_mut() = Some(Box::new(f));
+    }
+
+    pub fn prompt_upload(self: &Rc<Self>) {
+        if self.is_attached() {
+            self.choose_upload();
+        }
     }
 
     pub fn terminal_cwd_changed(self: &Rc<Self>, path: &str) {
@@ -457,6 +518,9 @@ impl Explorer {
     fn set_browsing_enabled(&self, enabled: bool) {
         self.path_entry.set_sensitive(enabled);
         for name in self.actions.list_actions() {
+            if matches!(name.as_str(), "show-hidden" | "follow-terminal") {
+                continue;
+            }
             if let Some(a) = self
                 .actions
                 .lookup_action(&name)
@@ -620,11 +684,15 @@ impl Explorer {
         }
         *self.cwd.borrow_mut() = path.to_string();
         self.path_entry.set_text(path);
+        self.path_entry.set_tooltip_text(Some(path));
         self.root_store.remove_all();
         self.stores.borrow_mut().clear();
         let store = self.root_store.clone();
         self.load_dir(path, &store);
         self.update_nav_buttons();
+        if let Some(f) = self.on_cwd_changed.borrow().as_ref() {
+            f(path);
+        }
     }
 
     pub fn navigate(self: &Rc<Self>, path: String) {
@@ -1108,8 +1176,10 @@ impl Explorer {
             let v = !a.state().and_then(|s| s.get::<bool>()).unwrap_or(false);
             a.set_state(&v.to_variant());
             this.show_hidden.set(v);
-            let cwd = this.cwd();
-            this.set_cwd(&cwd, false);
+            if this.is_attached() {
+                let cwd = this.cwd();
+                this.set_cwd(&cwd, false);
+            }
         });
         self.actions.add_action(&hidden);
 

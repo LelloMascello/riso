@@ -12,92 +12,498 @@ use adw::prelude::*;
 use gtk::{gdk, gio, glib};
 use vte4::prelude::*;
 
+pub const ZED_DARK_PALETTE_CSS: &str = r#"
+@define-color window_bg_color #171a1e;
+@define-color window_fg_color #dce0e5;
+@define-color view_bg_color #101216;
+@define-color view_fg_color #dce0e5;
+@define-color headerbar_bg_color #171a1e;
+@define-color headerbar_fg_color #dce0e5;
+@define-color headerbar_backdrop_color #14171b;
+@define-color headerbar_border_color #2d3139;
+@define-color sidebar_bg_color #171a1e;
+@define-color sidebar_fg_color #c9cdd5;
+@define-color sidebar_backdrop_color #14171b;
+@define-color sidebar_border_color #2d3139;
+@define-color secondary_sidebar_bg_color #14171b;
+@define-color secondary_sidebar_fg_color #c9cdd5;
+@define-color card_bg_color #1d2128;
+@define-color card_fg_color #dce0e5;
+@define-color dialog_bg_color #191c22;
+@define-color dialog_fg_color #dce0e5;
+@define-color popover_bg_color #191c22;
+@define-color popover_fg_color #dce0e5;
+@define-color accent_bg_color #4d78cc;
+@define-color accent_color #74ade8;
+@define-color accent_fg_color #ffffff;
+@define-color success_color #73c991;
+@define-color warning_color #e5c07b;
+@define-color error_color #e06c75;
+@define-color destructive_color #e06c75;
+@define-color borders #2d3139;
+
+:root {
+    --window-bg-color: #171a1e;
+    --window-fg-color: #dce0e5;
+    --view-bg-color: #101216;
+    --view-fg-color: #dce0e5;
+    --headerbar-bg-color: #171a1e;
+    --headerbar-fg-color: #dce0e5;
+    --headerbar-backdrop-color: #14171b;
+    --headerbar-border-color: #2d3139;
+    --sidebar-bg-color: #171a1e;
+    --sidebar-fg-color: #c9cdd5;
+    --sidebar-backdrop-color: #14171b;
+    --sidebar-border-color: #2d3139;
+    --secondary-sidebar-bg-color: #14171b;
+    --secondary-sidebar-fg-color: #c9cdd5;
+    --card-bg-color: #1d2128;
+    --card-fg-color: #dce0e5;
+    --dialog-bg-color: #191c22;
+    --dialog-fg-color: #dce0e5;
+    --popover-bg-color: #191c22;
+    --popover-fg-color: #dce0e5;
+    --accent-bg-color: #4d78cc;
+    --accent-color: #74ade8;
+    --accent-fg-color: #ffffff;
+    --border-color: #2d3139;
+    --success-color: #73c991;
+    --warning-color: #e5c07b;
+    --error-color: #e06c75;
+    --destructive-color: #e06c75;
+    --red-3: #e06c75;
+    --green-3: #98c379;
+    --yellow-3: #e5c07b;
+    --blue-3: #61afef;
+    --purple-3: #c678dd;
+}
+"#;
+
+pub const ZED_LIGHT_PALETTE_CSS: &str = r#"
+@define-color window_bg_color #ebebec;
+@define-color window_fg_color #242529;
+@define-color view_bg_color #fafafa;
+@define-color view_fg_color #242529;
+@define-color headerbar_bg_color #ebebec;
+@define-color headerbar_fg_color #242529;
+@define-color headerbar_backdrop_color #eff0f1;
+@define-color headerbar_border_color #d2d4d8;
+@define-color sidebar_bg_color #ebebec;
+@define-color sidebar_fg_color #32343a;
+@define-color sidebar_backdrop_color #eff0f1;
+@define-color sidebar_border_color #d2d4d8;
+@define-color secondary_sidebar_bg_color #e4e5e7;
+@define-color secondary_sidebar_fg_color #32343a;
+@define-color card_bg_color #ffffff;
+@define-color card_fg_color #242529;
+@define-color dialog_bg_color #f5f5f6;
+@define-color dialog_fg_color #242529;
+@define-color popover_bg_color #ffffff;
+@define-color popover_fg_color #242529;
+@define-color accent_bg_color #5c78e2;
+@define-color accent_color #3859c9;
+@define-color accent_fg_color #ffffff;
+@define-color success_color #2d8f5e;
+@define-color warning_color #b27d12;
+@define-color error_color #d13b47;
+@define-color destructive_color #d13b47;
+@define-color borders #d2d4d8;
+
+:root {
+    --window-bg-color: #ebebec;
+    --window-fg-color: #242529;
+    --view-bg-color: #fafafa;
+    --view-fg-color: #242529;
+    --headerbar-bg-color: #ebebec;
+    --headerbar-fg-color: #242529;
+    --headerbar-backdrop-color: #eff0f1;
+    --headerbar-border-color: #d2d4d8;
+    --sidebar-bg-color: #ebebec;
+    --sidebar-fg-color: #32343a;
+    --sidebar-backdrop-color: #eff0f1;
+    --sidebar-border-color: #d2d4d8;
+    --secondary-sidebar-bg-color: #e4e5e7;
+    --secondary-sidebar-fg-color: #32343a;
+    --card-bg-color: #ffffff;
+    --card-fg-color: #242529;
+    --dialog-bg-color: #f5f5f6;
+    --dialog-fg-color: #242529;
+    --popover-bg-color: #ffffff;
+    --popover-fg-color: #242529;
+    --accent-bg-color: #5c78e2;
+    --accent-color: #3859c9;
+    --accent-fg-color: #ffffff;
+    --border-color: #d2d4d8;
+    --success-color: #2d8f5e;
+    --warning-color: #b27d12;
+    --error-color: #d13b47;
+    --destructive-color: #d13b47;
+    --red-3: #d13b47;
+    --green-3: #2d8f5e;
+    --yellow-3: #b27d12;
+    --blue-3: #3859c9;
+    --purple-3: #8839ef;
+}
+"#;
+
 pub const STYLE_CSS: &str = r#"
-/* Unified Top Bar */
-.topbar {
-    background-color: var(--headerbar-bg-color, var(--window-bg-color));
-    color: var(--headerbar-fg-color, var(--window-fg-color));
-    border-bottom: 1px solid var(--headerbar-border-color, var(--border-color, color-mix(in srgb, currentColor 15%, transparent)));
-    min-height: 34px;
-    padding: 0 2px;
+:root {
+    --window-radius: 0px;
+    --zed-chrome-bg: var(--headerbar-bg-color, var(--window-bg-color));
+    --zed-chrome-fg: var(--headerbar-fg-color, var(--window-fg-color));
+    --zed-editor-bg: var(--view-bg-color, var(--window-bg-color));
+    --zed-editor-fg: var(--view-fg-color, var(--window-fg-color));
+    --zed-panel-bg: var(--sidebar-bg-color, var(--window-bg-color));
+    --zed-panel-fg: var(--sidebar-fg-color, var(--window-fg-color));
+    --zed-border: color-mix(in srgb, var(--window-fg-color, currentColor) 14%, var(--window-bg-color, transparent));
+    --zed-subtle-border: color-mix(in srgb, var(--view-fg-color, currentColor) 9%, var(--view-bg-color, transparent));
+    --zed-selection-bg: color-mix(in srgb, var(--accent-bg-color, #4d78cc) 28%, var(--zed-panel-bg));
+    --zed-hover-bg: color-mix(in srgb, currentColor 7%, transparent);
 }
 
-.topbar:backdrop {
-    background-color: var(--headerbar-backdrop-color, var(--window-bg-color));
+window,
+window.csd,
+window.background {
+    border-radius: 0;
+    background-color: var(--zed-chrome-bg);
+    color: var(--zed-chrome-fg);
+}
+
+/* Row 1: Ultra-Slim Zed Titlebar */
+.zed-titlebar {
+    background-color: var(--zed-chrome-bg);
+    color: var(--zed-chrome-fg);
+    border-bottom: 1px solid var(--zed-border);
+    min-height: 30px;
+    padding: 0 6px;
+}
+
+.zed-titlebar:backdrop {
+    background-color: var(--headerbar-backdrop-color, var(--zed-chrome-bg));
+}
+
+.titlebar-btn,
+.titlebar-btn > button {
+    min-width: 24px;
+    min-height: 22px;
+    padding: 0 3px;
+    border-radius: 3px;
+    box-shadow: none;
+}
+
+.zed-title-app {
+    font-size: 12px;
+    font-weight: 600;
+    margin-left: 2px;
+}
+
+.zed-title-sep {
+    font-size: 12px;
+    opacity: 0.38;
+    margin: 0 2px;
+}
+
+.zed-title-ctx {
+    font-size: 12px;
+    font-weight: 400;
+    opacity: 0.62;
+}
+
+.zed-titlebar windowcontrols button {
+    min-width: 22px;
+    min-height: 22px;
+    padding: 0;
+    margin: 0 1px;
+    border-radius: 3px;
+    box-shadow: none;
+}
+
+.zed-titlebar windowcontrols button > image {
+    background-color: transparent;
+    background-image: none;
+    border-radius: 3px;
+    min-width: 18px;
+    min-height: 18px;
+    padding: 2px;
+    opacity: 0.72;
+}
+
+.zed-titlebar windowcontrols button:hover > image {
+    background-color: var(--zed-hover-bg);
+    opacity: 1.0;
+}
+
+/* Row 2 Left: Zed Tab Bar Row */
+.zed-tabbar-row {
+    background-color: var(--zed-chrome-bg);
+    color: var(--zed-chrome-fg);
+    min-height: 34px;
+    padding: 0;
+}
+
+.zed-tabbar-row:backdrop {
+    background-color: var(--headerbar-backdrop-color, var(--zed-chrome-bg));
+}
+
+.zed-tab-nav {
+    padding: 0 4px;
+    border-right: 1px solid var(--zed-border);
+    box-shadow: inset 0 -1px 0 0 var(--zed-border);
+}
+
+.zed-tab-actions {
+    padding: 0 6px;
+    box-shadow: inset 0 -1px 0 0 var(--zed-border);
 }
 
 .topbar-btn {
-    min-width: 26px;
-    min-height: 26px;
-    padding: 0 4px;
-    border-radius: 4px;
+    min-width: 24px;
+    min-height: 24px;
+    padding: 0 3px;
+    border-radius: 3px;
+    box-shadow: none;
+    color: color-mix(in srgb, var(--zed-chrome-fg) 70%, transparent);
 }
 
-.session-tabbar,
-.session-tabbar > revealer > box {
+.topbar-btn:hover {
+    background-color: var(--zed-hover-bg);
+    color: var(--zed-chrome-fg);
+}
+
+.topbar-btn.active {
+    background-color: color-mix(in srgb, var(--accent-bg-color, #4d78cc) 24%, transparent);
+    color: var(--accent-color, var(--zed-chrome-fg));
+}
+
+.topbar-btn.active:hover {
+    background-color: color-mix(in srgb, var(--accent-bg-color, #4d78cc) 34%, transparent);
+}
+
+.zed-tab-scroll,
+.zed-tab-scroll undershoot.left,
+.zed-tab-scroll undershoot.right,
+.zed-tab-scroll overshoot.left,
+.zed-tab-scroll overshoot.right {
     background-color: transparent;
     background-image: none;
     box-shadow: none;
     border: none;
 }
 
-.session-tabbar tabbox {
-    background-color: transparent;
+.zed-tab-scroll scrollbar.horizontal {
+    opacity: 0;
+    min-height: 0;
+    margin: 0;
     padding: 0;
-    border: none;
 }
 
-.session-tabbar tab {
+.zed-tabstrip {
     background-color: transparent;
-    color: color-mix(in srgb, var(--headerbar-fg-color, var(--window-fg-color, currentColor)) 70%, transparent);
-    border-radius: 0;
-    border-right: 1px solid var(--headerbar-border-color, var(--border-color, color-mix(in srgb, currentColor 15%, transparent)));
-    min-height: 34px;
-    padding: 0 10px;
+    padding: 0;
     margin: 0;
-    font-size: 12.5px;
+}
+
+.zed-tab-filler {
+    background-color: transparent;
+    box-shadow: inset 0 -1px 0 0 var(--zed-border);
+}
+
+.zed-tab {
+    background-color: transparent;
+    color: color-mix(in srgb, var(--zed-chrome-fg) 58%, transparent);
+    border-right: 1px solid var(--zed-border);
+    box-shadow: inset 0 -1px 0 0 var(--zed-border);
+    min-height: 34px;
+    padding: 0 8px 0 13px;
+    font-size: 12px;
+    font-weight: 400;
+}
+
+.zed-tab:hover {
+    background-color: color-mix(in srgb, var(--zed-chrome-fg) 5%, var(--zed-chrome-bg));
+    color: color-mix(in srgb, var(--zed-chrome-fg) 88%, transparent);
+}
+
+.zed-tab.active {
+    background-color: var(--zed-editor-bg);
+    color: var(--zed-editor-fg);
+    font-weight: 500;
     box-shadow: none;
 }
 
-.session-tabbar tab:hover {
-    background-color: color-mix(in srgb, currentColor 7%, transparent);
-    color: var(--headerbar-fg-color, var(--window-fg-color, inherit));
+.zed-tab-label {
+    margin-right: 2px;
 }
 
-.session-tabbar tab:checked {
-    background-color: var(--view-bg-color, var(--window-bg-color));
-    color: var(--view-fg-color, var(--window-fg-color));
-    box-shadow: inset 0 2px 0 0 var(--accent-bg-color, currentColor);
+.zed-tab-dot {
+    font-size: 11px;
+    color: var(--accent-color, #74ade8);
+    margin-right: 2px;
 }
 
-/* SFTP Explorer Sidebar */
+.zed-tab-dot.loading {
+    color: var(--warning-color, #e5c07b);
+}
+
+.zed-tab-close {
+    min-width: 16px;
+    min-height: 16px;
+    padding: 1px;
+    margin: 0;
+    border-radius: 3px;
+    box-shadow: none;
+    opacity: 0.0;
+}
+
+.zed-tab.active .zed-tab-close,
+.zed-tab:hover .zed-tab-close {
+    opacity: 0.56;
+}
+
+.zed-tab .zed-tab-close:hover {
+    opacity: 1.0;
+    background-color: var(--zed-hover-bg);
+}
+
+/* Zed Session Breadcrumb / Sub-header Bar */
+.zed-subheader {
+    background-color: var(--zed-editor-bg);
+    color: var(--zed-editor-fg);
+    border-bottom: 1px solid var(--zed-subtle-border);
+    min-height: 28px;
+    padding: 0 10px;
+}
+
+.zed-crumb-root {
+    font-size: 12px;
+    opacity: 0.5;
+}
+
+.zed-crumb-sep {
+    font-size: 12px;
+    opacity: 0.36;
+    margin: 0 6px;
+}
+
+.zed-crumb-target {
+    font-size: 12px;
+    opacity: 0.65;
+}
+
+.zed-crumb-target.active {
+    opacity: 1.0;
+    color: var(--accent-color, var(--zed-editor-fg));
+    font-weight: 500;
+}
+
+.zed-crumb-path {
+    font-family: monospace;
+    font-size: 11.5px;
+    opacity: 0.74;
+}
+
+.zed-action-btn {
+    background-color: transparent;
+    background-image: none;
+    color: var(--accent-color, var(--zed-editor-fg));
+    border: 1px solid color-mix(in srgb, var(--accent-color, currentColor) 45%, var(--zed-border));
+    border-radius: 2px;
+    box-shadow: none;
+    min-height: 20px;
+    padding: 0 10px;
+    font-family: monospace;
+    font-size: 11.5px;
+    font-weight: 400;
+}
+
+.zed-action-btn:hover {
+    background-color: color-mix(in srgb, var(--accent-bg-color, #4d78cc) 18%, transparent);
+    border-color: var(--accent-color, currentColor);
+}
+
+.subheader-icon-btn {
+    min-width: 22px;
+    min-height: 20px;
+    padding: 0 3px;
+    border-radius: 3px;
+    opacity: 0.68;
+}
+
+.subheader-icon-btn:hover {
+    opacity: 1.0;
+    background-color: var(--zed-hover-bg);
+}
+
+/* Right Dock: SFTP Explorer Panel */
+paned.zed-paned > separator,
+paned > separator {
+    background-color: var(--zed-border);
+    background-image: none;
+    min-width: 1px;
+    min-height: 1px;
+}
+
+.zed-dock,
 .explorer-sidebar {
-    background-color: var(--sidebar-bg-color, var(--window-bg-color));
-    color: var(--sidebar-fg-color, var(--window-fg-color));
+    background-color: var(--zed-panel-bg);
+    color: var(--zed-panel-fg);
 }
 
 .explorer-sidebar:backdrop {
-    background-color: var(--sidebar-backdrop-color, var(--window-bg-color));
+    background-color: var(--sidebar-backdrop-color, var(--zed-panel-bg));
 }
 
 .explorer-toolbar {
-    padding: 4px 6px;
-    border-bottom: 1px solid var(--sidebar-border-color, var(--border-color, color-mix(in srgb, currentColor 15%, transparent)));
-    min-height: 30px;
+    background-color: var(--zed-panel-bg);
+    box-shadow: inset 0 -1px 0 0 var(--zed-border);
+    border: none;
+    padding: 0 6px;
+    min-height: 34px;
 }
 
-.path-entry {
+.explorer-header-icon {
+    opacity: 0.62;
+    margin-left: 3px;
+    margin-right: 2px;
+}
+
+entry.path-entry {
     min-height: 24px;
-    padding: 0 6px;
+    padding: 0 5px;
+    background-color: transparent;
+    background-image: none;
+    border: none;
+    border-radius: 2px;
+    box-shadow: none;
+    outline: none;
     font-size: 12px;
     font-family: monospace;
+    color: var(--zed-panel-fg);
 }
 
-.icon-btn {
+entry.path-entry:focus-within {
+    background-color: color-mix(in srgb, currentColor 6%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-color, currentColor) 55%, transparent);
+}
+
+entry.path-entry:disabled {
+    opacity: 0.75;
+}
+
+.icon-btn,
+.icon-btn > button {
     min-width: 22px;
     min-height: 22px;
-    padding: 2px;
-    border-radius: 4px;
+    padding: 0 2px;
+    border-radius: 3px;
+    box-shadow: none;
+    color: color-mix(in srgb, var(--zed-panel-fg) 72%, transparent);
+}
+
+.icon-btn:hover,
+.icon-btn > button:hover {
+    background-color: var(--zed-hover-bg);
+    color: var(--zed-panel-fg);
 }
 
 .thin-progress,
@@ -115,122 +521,195 @@ pub const STYLE_CSS: &str = r#"
 
 .explorer-tree {
     background-color: transparent;
-    color: inherit;
+    color: var(--zed-panel-fg);
     font-size: 12.5px;
+    padding: 2px 0;
 }
 
 .explorer-tree > row {
-    min-height: 22px;
-    padding: 1px 6px;
+    min-height: 24px;
+    padding: 1px 10px 1px 6px;
     margin: 0;
     border-radius: 0;
+    outline: none;
 }
 
 .explorer-tree > row:hover {
-    background-color: color-mix(in srgb, currentColor 7%, transparent);
+    background-color: color-mix(in srgb, var(--zed-panel-fg) 6%, transparent);
 }
 
 .explorer-tree > row:selected {
-    background-color: color-mix(in srgb, var(--accent-bg-color, currentColor) 24%, transparent);
-    color: inherit;
+    background-color: var(--zed-selection-bg);
+    color: var(--zed-editor-fg);
 }
 
 .explorer-tree > row:selected:hover {
-    background-color: color-mix(in srgb, var(--accent-bg-color, currentColor) 32%, transparent);
+    background-color: color-mix(in srgb, var(--accent-bg-color, #4d78cc) 35%, var(--zed-panel-bg));
 }
 
 .explorer-tree-icon {
-    opacity: 0.75;
+    opacity: 0.72;
+}
+
+.explorer-entry-meta {
+    font-family: monospace;
+    font-size: 11px;
+    opacity: 0.42;
+    margin-left: 6px;
 }
 
 .hidden-entry {
-    opacity: 0.55;
-}
-
-paned > separator {
-    background-color: var(--sidebar-border-color, var(--border-color, color-mix(in srgb, currentColor 15%, transparent)));
-    min-width: 1px;
+    opacity: 0.52;
 }
 
 /* Terminal & Drop Overlay */
+.session-view,
 .terminal-box {
-    background-color: var(--view-bg-color, var(--window-bg-color));
-    color: var(--view-fg-color, var(--window-fg-color));
+    background-color: var(--zed-editor-bg);
+    color: var(--zed-editor-fg);
 }
 
 .session-terminal {
-    color: var(--view-fg-color, var(--window-fg-color));
+    color: var(--zed-editor-fg);
 }
 
 .drop-overlay {
-    background-color: color-mix(in srgb, var(--window-bg-color) 78%, transparent);
+    background-color: color-mix(in srgb, var(--zed-editor-bg) 82%, transparent);
 }
 
 .drop-card {
     background-color: var(--card-bg-color, var(--popover-bg-color));
     color: var(--card-fg-color, var(--popover-fg-color));
-    border: 1px dashed var(--accent-color, currentColor);
-    border-radius: 6px;
-    padding: 20px 32px;
+    border: 1px solid var(--accent-color, currentColor);
+    border-radius: 3px;
+    padding: 18px 28px;
 }
 
 .drop-active {
-    outline: 1px dashed var(--accent-color, currentColor);
-    outline-offset: -2px;
+    outline: 1px solid var(--accent-color, currentColor);
+    outline-offset: -1px;
 }
 
-/* 22px Status Bar */
-.statusbar {
-    background-color: var(--headerbar-bg-color, var(--window-bg-color));
-    color: color-mix(in srgb, var(--headerbar-fg-color, var(--window-fg-color)) 72%, transparent);
-    border-top: 1px solid var(--headerbar-border-color, var(--border-color, color-mix(in srgb, currentColor 15%, transparent)));
-    padding: 0 10px;
-    min-height: 22px;
-    font-size: 11.5px;
+/* Row 3: Full-Width Bottom Zed Status Bar */
+.zed-statusbar {
+    background-color: var(--zed-chrome-bg);
+    color: color-mix(in srgb, var(--zed-chrome-fg) 66%, transparent);
+    border-top: 1px solid var(--zed-border);
+    padding: 0 8px;
+    min-height: 24px;
+    font-family: monospace;
+    font-size: 11px;
 }
 
-.statusbar:backdrop {
-    background-color: var(--headerbar-backdrop-color, var(--window-bg-color));
+.zed-statusbar:backdrop {
+    background-color: var(--headerbar-backdrop-color, var(--zed-chrome-bg));
 }
 
 .status-dot {
     font-size: 9px;
 }
 
+.status-dot.idle {
+    opacity: 0.35;
+}
+
 .status-dot.ok {
-    color: var(--success-color, #2ec27e);
+    color: var(--success-color, #73c991);
 }
 
 .status-dot.wait {
-    color: var(--warning-color, #e5a50a);
+    color: var(--warning-color, #e5c07b);
 }
 
 .status-dot.err {
-    color: var(--error-color, #e01b24);
+    color: var(--error-color, #e06c75);
 }
 
-.status-btn {
-    min-height: 18px;
-    padding: 0 6px;
-    border-radius: 3px;
+.status-text {
     font-size: 11px;
-    color: var(--accent-color, currentColor);
 }
 
 .sync-badge {
-    color: var(--success-color, #2ec27e);
+    color: var(--success-color, #73c991);
     font-family: monospace;
     font-size: 11px;
+    margin-left: 6px;
+}
+
+.status-meta {
+    opacity: 0.56;
+    font-size: 11px;
+    margin-right: 6px;
+}
+
+.status-meta-host {
+    opacity: 0.78;
+    font-size: 11px;
+    margin-right: 6px;
+}
+
+.status-proto {
+    opacity: 0.56;
+    font-size: 11px;
+    margin-right: 2px;
+}
+
+.statusbar-icon-btn {
+    min-width: 20px;
+    min-height: 18px;
+    padding: 0 3px;
+    border-radius: 2px;
+    box-shadow: none;
+    opacity: 0.68;
+}
+
+.statusbar-icon-btn:hover {
+    opacity: 1.0;
+    background-color: var(--zed-hover-bg);
+}
+
+.statusbar-icon-btn.active {
+    opacity: 0.95;
+    color: var(--accent-color, inherit);
 }
 
 .muted-label {
-    opacity: 0.6;
+    opacity: 0.52;
     font-size: 11.5px;
 }
 
-/* Inline Terminal SSH Host Autocompletion */
+/* Zed Popovers, Context Menus, Toasts, Scrollbars & Quick-Pick Modals */
+popover > contents {
+    background-color: var(--popover-bg-color, var(--zed-chrome-bg));
+    color: var(--popover-fg-color, var(--zed-chrome-fg));
+    border: 1px solid var(--zed-border);
+    border-radius: 4px;
+    padding: 3px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.38);
+}
+
+popover modelbutton {
+    min-height: 24px;
+    padding: 2px 8px;
+    border-radius: 2px;
+    font-size: 12px;
+}
+
+popover modelbutton:hover,
+popover modelbutton:selected {
+    background-color: var(--zed-selection-bg);
+    color: var(--zed-editor-fg);
+}
+
+popover separator {
+    margin: 3px 0;
+    background-color: var(--zed-border);
+    min-height: 1px;
+}
+
 popover.suggest-popover > contents {
-    padding: 2px 0;
+    padding: 2px;
+    border-radius: 3px;
 }
 
 .suggest-list {
@@ -240,30 +719,45 @@ popover.suggest-popover > contents {
 }
 
 .suggest-list > row {
-    padding: 3px 10px;
+    padding: 3px 8px;
     min-height: 22px;
-    border-radius: 0;
+    border-radius: 2px;
+    outline: none;
 }
 
 .suggest-list > row:hover {
-    background-color: color-mix(in srgb, currentColor 7%, transparent);
+    background-color: var(--zed-hover-bg);
 }
 
 .suggest-list > row:selected {
-    background-color: color-mix(in srgb, var(--accent-bg-color, currentColor) 24%, transparent);
-    color: inherit;
+    background-color: var(--zed-selection-bg);
+    color: var(--zed-editor-fg);
 }
 
-/* Minimal "Apri con…" Quick-Pick Dialog */
 .picker-dialog {
     padding: 8px;
+    background-color: var(--dialog-bg-color, var(--zed-chrome-bg));
 }
 
-.picker-input {
+entry.picker-input,
+entry.zed-dialog-entry {
     min-height: 28px;
     padding: 0 8px;
-    margin-bottom: 6px;
+    border-radius: 3px;
+    border: 1px solid var(--zed-border);
+    background-color: var(--zed-editor-bg);
+    color: var(--zed-editor-fg);
+    box-shadow: none;
     font-size: 12.5px;
+}
+
+entry.picker-input {
+    margin-bottom: 6px;
+}
+
+entry.picker-input:focus-within,
+entry.zed-dialog-entry:focus-within {
+    border-color: var(--accent-color, currentColor);
 }
 
 .picker-list {
@@ -271,22 +765,48 @@ popover.suggest-popover > contents {
 }
 
 .picker-list > row {
-    border-radius: 4px;
+    border-radius: 2px;
     padding: 0;
+    outline: none;
 }
 
 .picker-list > row:hover {
-    background-color: color-mix(in srgb, currentColor 7%, transparent);
+    background-color: var(--zed-hover-bg);
 }
 
 .picker-list > row:selected {
-    background-color: color-mix(in srgb, var(--accent-bg-color, currentColor) 24%, transparent);
-    color: inherit;
+    background-color: var(--zed-selection-bg);
+    color: var(--zed-editor-fg);
 }
 
 .picker-row {
     padding: 5px 8px;
     font-size: 12.5px;
+}
+
+toast {
+    border-radius: 4px;
+    border: 1px solid var(--zed-border);
+    background-color: var(--popover-bg-color, var(--zed-chrome-bg));
+    color: var(--popover-fg-color, var(--zed-chrome-fg));
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.36);
+}
+
+scrollbar {
+    background-color: transparent;
+    border: none;
+}
+
+scrollbar slider {
+    min-width: 6px;
+    min-height: 24px;
+    border-radius: 0;
+    margin: 0;
+    background-color: color-mix(in srgb, currentColor 16%, transparent);
+}
+
+scrollbar slider:hover {
+    background-color: color-mix(in srgb, currentColor 30%, transparent);
 }
 "#;
 
@@ -377,6 +897,7 @@ struct ThemeManager {
     gtk_css_path: PathBuf,
     startup_inspection: CssInspection,
 
+    zed_base_provider: gtk::CssProvider,
     configured_theme_provider: gtk::CssProvider,
     reset_provider: gtk::CssProvider,
     live_user_provider: gtk::CssProvider,
@@ -397,6 +918,14 @@ struct ThemeManager {
 /// symlinks), `settings.ini`, `gsettings` / `dconf`, `adw::StyleManager`, and
 /// `gtk::Settings`.
 pub fn init(app: &adw::Application, display: &gdk::Display) {
+    let zed_base_provider = gtk::CssProvider::new();
+    zed_base_provider.load_from_string(ZED_DARK_PALETTE_CSS);
+    gtk::style_context_add_provider_for_display(
+        display,
+        &zed_base_provider,
+        gtk::STYLE_PROVIDER_PRIORITY_THEME + 1,
+    );
+
     let configured_theme_provider = gtk::CssProvider::new();
     gtk::style_context_add_provider_for_display(
         display,
@@ -463,6 +992,7 @@ pub fn init(app: &adw::Application, display: &gdk::Display) {
         dconf_dir,
         gtk_css_path,
         startup_inspection,
+        zed_base_provider,
         configured_theme_provider,
         reset_provider,
         live_user_provider,
@@ -718,44 +1248,27 @@ impl ThemeManager {
             return;
         }
 
-        // 2. When a system settings portal is active, `ColorScheme::Default`
-        //    follows portal light/dark changes automatically; only apply
-        //    `PreferDark` if no explicit `color-scheme` key is set and a dark
-        //    GTK theme/INI override is configured.
+        // 2. Default to `PreferDark` (Zed Dark) unless an explicit light
+        //    preference (`prefer-light` or `-light` theme) is configured;
+        //    `PreferDark` still honors `prefer-light` from desktop portals.
         let gs_explicit = gsettings_explicit_color_scheme(self.gsettings.as_ref());
-        if style_manager.system_supports_color_schemes() {
-            let theme_override_dark = if gs_explicit.is_some() {
-                None
-            } else if is_gnome_desktop() {
-                gsettings_theme_prefers_dark(self.gsettings.as_ref()).or_else(env_theme_prefers_dark)
-            } else {
-                ini_prefers_dark(&self.gtk4_dir)
-                    .or_else(|| gsettings_theme_prefers_dark(self.gsettings.as_ref()))
-                    .or_else(|| ini_prefers_dark(&self.gtk3_dir))
-                    .or_else(|| gtk_settings_prefers_dark(&self.display))
-                    .or_else(env_theme_prefers_dark)
-            };
-            style_manager.set_color_scheme(if theme_override_dark == Some(true) {
-                adw::ColorScheme::PreferDark
-            } else {
-                adw::ColorScheme::Default
+        let explicit_pref = gs_explicit
+            .or_else(|| {
+                if is_gnome_desktop() {
+                    gsettings_theme_prefers_dark(self.gsettings.as_ref())
+                        .or_else(env_theme_prefers_dark)
+                } else {
+                    ini_prefers_dark(&self.gtk4_dir)
+                        .or_else(|| gsettings_theme_prefers_dark(self.gsettings.as_ref()))
+                        .or_else(|| ini_prefers_dark(&self.gtk3_dir))
+                        .or_else(|| gtk_settings_prefers_dark(&self.display))
+                        .or_else(env_theme_prefers_dark)
+                }
             });
-            return;
-        }
 
-        // 3. Fallback when no `org.freedesktop.appearance` portal is present.
-        let prefer_dark = gs_explicit
-            .or_else(|| ini_prefers_dark(&self.gtk4_dir))
-            .or_else(|| gsettings_theme_prefers_dark(self.gsettings.as_ref()))
-            .or_else(|| ini_prefers_dark(&self.gtk3_dir))
-            .or_else(|| gtk_settings_prefers_dark(&self.display))
-            .or_else(env_theme_prefers_dark)
-            .unwrap_or(false);
-
-        style_manager.set_color_scheme(if prefer_dark {
-            adw::ColorScheme::PreferDark
-        } else {
-            adw::ColorScheme::Default
+        style_manager.set_color_scheme(match explicit_pref {
+            Some(false) => adw::ColorScheme::ForceLight,
+            _ => adw::ColorScheme::PreferDark,
         });
     }
 
@@ -763,6 +1276,13 @@ impl ThemeManager {
         let style_manager = adw::StyleManager::default();
         let dark = style_manager.is_dark();
         let accent = style_manager.accent_color_rgba();
+
+        // 0. Base Zed palette (overridden by configured/user GTK themes when set)
+        self.zed_base_provider.load_from_string(if dark {
+            ZED_DARK_PALETTE_CSS
+        } else {
+            ZED_LIGHT_PALETTE_CSS
+        });
 
         // 1. Configured named GTK4 theme palette (`GTK_THEME`, `settings.ini`, `gsettings`)
         let theme_css_path = self
@@ -1686,13 +2206,25 @@ fn strip_css_comments(css: &str) -> String {
 
 fn adwaita_default_color(name: &str, dark: bool, accent: &gdk::RGBA) -> Option<String> {
     let bg = if dark {
-        rgb_hex(0x1d1d20)
+        rgb_hex(0x101216)
     } else {
-        rgb_hex(0xffffff)
+        rgb_hex(0xfafafa)
     };
     match name {
-        "accent_bg_color" => return Some(rgba_to_css(accent)),
-        "accent_color" => return Some(rgba_to_css(&ensure_contrast(accent, &bg, 3.5))),
+        "accent_bg_color" => {
+            return Some(if dark {
+                "#4d78cc".to_string()
+            } else {
+                rgba_to_css(accent)
+            });
+        }
+        "accent_color" => {
+            return Some(if dark {
+                "#74ade8".to_string()
+            } else {
+                rgba_to_css(&ensure_contrast(accent, &bg, 3.5))
+            });
+        }
         "accent_fg_color" => {
             return Some(if luminance(accent) > 0.55 {
                 "rgba(0, 0, 0, 0.8)".to_string()
@@ -1704,50 +2236,51 @@ fn adwaita_default_color(name: &str, dark: bool, accent: &gdk::RGBA) -> Option<S
     }
     let val = if dark {
         match name {
-            "window_bg_color" => "#222226",
-            "window_fg_color" => "#ffffff",
-            "view_bg_color" => "#1d1d20",
-            "view_fg_color" => "#ffffff",
-            "headerbar_bg_color" => "#2e2e32",
-            "headerbar_fg_color" => "#ffffff",
-            "headerbar_backdrop_color" => "#222226",
-            "headerbar_border_color" => "rgba(255, 255, 255, 0.12)",
-            "sidebar_bg_color" => "#2e2e32",
-            "sidebar_fg_color" => "#ffffff",
-            "sidebar_backdrop_color" => "#28282c",
-            "sidebar_border_color" => "rgba(255, 255, 255, 0.12)",
-            "secondary_sidebar_bg_color" => "#28282c",
-            "secondary_sidebar_fg_color" => "#ffffff",
-            "card_bg_color" => "rgba(255, 255, 255, 0.08)",
-            "card_fg_color" => "#ffffff",
-            "dialog_bg_color" | "popover_bg_color" => "#36363a",
-            "dialog_fg_color" | "popover_fg_color" => "#ffffff",
-            "borders" | "border_color" => "rgba(255, 255, 255, 0.15)",
-            "success_color" => "#8ff0a4",
-            "warning_color" => "#f8e45c",
-            "error_color" | "destructive_color" => "#ff7b63",
+            "window_bg_color" => "#171a1e",
+            "window_fg_color" => "#dce0e5",
+            "view_bg_color" => "#101216",
+            "view_fg_color" => "#dce0e5",
+            "headerbar_bg_color" => "#171a1e",
+            "headerbar_fg_color" => "#dce0e5",
+            "headerbar_backdrop_color" => "#14171b",
+            "headerbar_border_color" => "#2d3139",
+            "sidebar_bg_color" => "#171a1e",
+            "sidebar_fg_color" => "#c9cdd5",
+            "sidebar_backdrop_color" => "#14171b",
+            "sidebar_border_color" => "#2d3139",
+            "secondary_sidebar_bg_color" => "#14171b",
+            "secondary_sidebar_fg_color" => "#c9cdd5",
+            "card_bg_color" => "#1d2128",
+            "card_fg_color" => "#dce0e5",
+            "dialog_bg_color" | "popover_bg_color" => "#191c22",
+            "dialog_fg_color" | "popover_fg_color" => "#dce0e5",
+            "borders" | "border_color" => "#2d3139",
+            "success_color" => "#73c991",
+            "warning_color" => "#e5c07b",
+            "error_color" | "destructive_color" => "#e06c75",
             _ => return None,
         }
     } else {
         match name {
-            "window_bg_color" | "headerbar_backdrop_color" | "dialog_bg_color" => "#fafafb",
+            "window_bg_color" | "headerbar_bg_color" | "sidebar_bg_color" => "#ebebec",
+            "headerbar_backdrop_color" | "sidebar_backdrop_color" => "#eff0f1",
+            "dialog_bg_color" => "#f5f5f6",
             "window_fg_color"
             | "view_fg_color"
             | "headerbar_fg_color"
-            | "sidebar_fg_color"
-            | "secondary_sidebar_fg_color"
             | "card_fg_color"
             | "dialog_fg_color"
-            | "popover_fg_color" => "rgba(0, 0, 0, 0.8)",
-            "view_bg_color" | "card_bg_color" | "popover_bg_color" => "#ffffff",
-            "headerbar_bg_color" | "sidebar_bg_color" => "#ebebed",
-            "headerbar_border_color" | "borders" | "border_color" => "rgba(0, 0, 0, 0.15)",
-            "sidebar_backdrop_color" => "#f2f2f4",
-            "sidebar_border_color" => "rgba(0, 0, 0, 0.12)",
-            "secondary_sidebar_bg_color" => "#f3f3f5",
-            "success_color" => "#26a269",
-            "warning_color" => "#ae7b03",
-            "error_color" | "destructive_color" => "#c01c28",
+            | "popover_fg_color" => "#242529",
+            "sidebar_fg_color" | "secondary_sidebar_fg_color" => "#32343a",
+            "view_bg_color" => "#fafafa",
+            "card_bg_color" | "popover_bg_color" => "#ffffff",
+            "headerbar_border_color" | "sidebar_border_color" | "borders" | "border_color" => {
+                "#d2d4d8"
+            }
+            "secondary_sidebar_bg_color" => "#e4e5e7",
+            "success_color" => "#2d8f5e",
+            "warning_color" => "#b27d12",
+            "error_color" | "destructive_color" => "#d13b47",
             _ => return None,
         }
     };
@@ -1823,9 +2356,9 @@ fn resolve_gtk_colors(term: &vte4::Terminal) -> ResolvedTheme {
         })
         .unwrap_or_else(|| {
             if prefer_dark {
-                rgb_hex(0x1d1d20)
+                rgb_hex(0x101216)
             } else {
-                rgb_hex(0xffffff)
+                rgb_hex(0xfafafa)
             }
         });
 
@@ -2047,7 +2580,12 @@ mod tests {
         if gtk::init().is_err() {
             return;
         }
-        for css in [STYLE_CSS, PROBE_CSS] {
+        for css in [
+            ZED_DARK_PALETTE_CSS,
+            ZED_LIGHT_PALETTE_CSS,
+            STYLE_CSS,
+            PROBE_CSS,
+        ] {
             let errors: Rc<RefCell<Vec<String>>> = Rc::default();
             let provider = gtk::CssProvider::new();
             let errs = errors.clone();

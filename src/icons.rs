@@ -8,15 +8,45 @@ use gtk::{gdk, glib};
 static INIT: Once = Once::new();
 
 const ICONS: &[(&str, &str)] = &[
-    // Sidebar split layout
+    // Hamburger menu (3 thin horizontal 1px bars)
+    (
+        "riso-menu-symbolic",
+        r##"<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><path fill="#2e3436" d="M2.5 3.5h11v1h-11v-1zm0 4h11v1h-11v-1zm0 4h11v1h-11v-1z"/></svg>"##,
+    ),
+    // Right-dock sidebar split layout (Zed style)
     (
         "riso-sidebar-symbolic",
-        r##"<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><path fill="#2e3436" fill-rule="evenodd" d="M2 2.5l.5-.5h11l.5.5v11l-.5.5h-11l-.5-.5v-11zM3 3v10h3V3H3zm4 0v10h6V3H7z"/></svg>"##,
+        r##"<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><path fill="#2e3436" fill-rule="evenodd" d="M2 2.5l.5-.5h11l.5.5v11l-.5.5h-11l-.5-.5v-11zM3 3v10h6V3H3zm7 0v10h3V3h-3z"/></svg>"##,
+    ),
+    // Chevron left (<)
+    (
+        "riso-chevron-left-symbolic",
+        r##"<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><path fill="#2e3436" d="M10.15 3.15l.7.7L6.71 8l4.14 4.15-.7.7L5.29 8l4.86-4.85z"/></svg>"##,
+    ),
+    // Chevron right (>)
+    (
+        "riso-chevron-right-symbolic",
+        r##"<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><path fill="#2e3436" d="M5.85 3.15L10.71 8l-4.86 4.85-.7-.7L9.29 8 5.15 3.85l.7-.7z"/></svg>"##,
     ),
     // Thin +
     (
         "riso-plus-symbolic",
-        r##"<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><path fill="#2e3436" d="M7.5 2h1v5.5H14v1H8.5V14h-1V8.5H2v-1h5.5V2z"/></svg>"##,
+        r##"<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><path fill="#2e3436" d="M7.5 2.5h1v5H13.5v1h-5v5h-1v-5h-5v-1h5v-5z"/></svg>"##,
+    ),
+    // Thin × close
+    (
+        "riso-close-symbolic",
+        r##"<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><path fill="#2e3436" d="M4.65 3.95L8 7.29l3.35-3.34.7.7L8.71 8l3.34 3.35-.7.7L8 8.71l-3.35 3.34-.7-.7L7.29 8 3.95 4.65l.7-.7z"/></svg>"##,
+    ),
+    // Vertical 3-dots menu
+    (
+        "riso-dots-symbolic",
+        r##"<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><path fill="#2e3436" d="M8 2.75a1.15 1.15 0 1 1 0 2.3 1.15 1.15 0 0 1 0-2.3zm0 4.1a1.15 1.15 0 1 1 0 2.3 1.15 1.15 0 0 1 0-2.3zm0 4.1a1.15 1.15 0 1 1 0 2.3 1.15 1.15 0 0 1 0-2.3z"/></svg>"##,
+    ),
+    // Terminal square icon (Zed statusbar style)
+    (
+        "riso-terminal-symbolic",
+        r##"<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><path fill="#2e3436" fill-rule="evenodd" d="M2 2.5l.5-.5h11l.5.5v11l-.5.5h-11l-.5-.5v-11zM3 3v10h10V3H3zm1.85 2.65l2.85 2.85-2.85 2.85-.7-.7L6.29 8.5 4.15 6.35l.7-.7zM8 10h3.5v1H8v-1z"/></svg>"##,
     ),
     // Closed folder outline
     (
@@ -62,21 +92,32 @@ const ICONS: &[(&str, &str)] = &[
 
 pub fn register(display: &gdk::Display) {
     INIT.call_once(|| {
-        let base = glib::user_runtime_dir().join("riso").join("icons");
-        let dir = base.join("hicolor").join("scalable").join("actions");
-        if fs::create_dir_all(&dir).is_ok() {
-            if let Ok(existing) = fs::read_dir(&dir) {
-                for entry in existing.flatten() {
-                    let path = entry.path();
-                    if path.extension().and_then(|s| s.to_str()) == Some("svg") {
-                        let _ = fs::remove_file(path);
+        let candidates = [
+            glib::user_runtime_dir().join("riso").join("icons"),
+            std::env::temp_dir().join(format!("riso-icons-{}", std::process::id())),
+        ];
+        for base in candidates {
+            let dir = base.join("hicolor").join("scalable").join("actions");
+            if fs::create_dir_all(&dir).is_ok() {
+                if let Ok(existing) = fs::read_dir(&dir) {
+                    for entry in existing.flatten() {
+                        let path = entry.path();
+                        if path.extension().and_then(|s| s.to_str()) == Some("svg") {
+                            let _ = fs::remove_file(path);
+                        }
                     }
                 }
+                let mut wrote_any = false;
+                for (name, svg) in ICONS {
+                    if fs::write(dir.join(format!("{name}.svg")), svg).is_ok() {
+                        wrote_any = true;
+                    }
+                }
+                if wrote_any {
+                    gtk::IconTheme::for_display(display).add_search_path(&base);
+                    break;
+                }
             }
-            for (name, svg) in ICONS {
-                let _ = fs::write(dir.join(format!("{name}.svg")), svg);
-            }
-            gtk::IconTheme::for_display(display).add_search_path(&base);
         }
     });
 }
