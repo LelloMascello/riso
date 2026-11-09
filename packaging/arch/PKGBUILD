@@ -1,11 +1,11 @@
 # Maintainer: Leopoldo <leopoldopollini@gmail.com>
 
 pkgname=riso
-pkgver=0.1.0
+pkgver=0.1.1
 pkgrel=1
 pkgdesc='Remote Interface for SSH Operations — graphical SSH client with integrated SFTP explorer'
 arch=('x86_64' 'aarch64')
-url='' # Inserisci qui l'URL pubblico del repository quando disponibile (es. GitHub/GitLab)
+url='https://github.com/LelloMascello/riso'
 license=('MIT')
 depends=(
   'glib2'

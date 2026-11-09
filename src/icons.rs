@@ -13,7 +13,7 @@ const ICONS: &[(&str, &str)] = &[
         "riso-menu-symbolic",
         r##"<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><path fill="#2e3436" d="M2.5 3.5h11v1h-11v-1zm0 4h11v1h-11v-1zm0 4h11v1h-11v-1z"/></svg>"##,
     ),
-    // Right-dock sidebar split layout (Zed style)
+    // Right-dock sidebar split layout
     (
         "riso-sidebar-symbolic",
         r##"<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><path fill="#2e3436" fill-rule="evenodd" d="M2 2.5l.5-.5h11l.5.5v11l-.5.5h-11l-.5-.5v-11zM3 3v10h6V3H3zm7 0v10h3V3h-3z"/></svg>"##,
@@ -43,7 +43,7 @@ const ICONS: &[(&str, &str)] = &[
         "riso-dots-symbolic",
         r##"<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><path fill="#2e3436" d="M8 2.75a1.15 1.15 0 1 1 0 2.3 1.15 1.15 0 0 1 0-2.3zm0 4.1a1.15 1.15 0 1 1 0 2.3 1.15 1.15 0 0 1 0-2.3zm0 4.1a1.15 1.15 0 1 1 0 2.3 1.15 1.15 0 0 1 0-2.3z"/></svg>"##,
     ),
-    // Terminal square icon (Zed statusbar style)
+    // Terminal square icon
     (
         "riso-terminal-symbolic",
         r##"<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><path fill="#2e3436" fill-rule="evenodd" d="M2 2.5l.5-.5h11l.5.5v11l-.5.5h-11l-.5-.5v-11zM3 3v10h10V3H3zm1.85 2.65l2.85 2.85-2.85 2.85-.7-.7L6.29 8.5 4.15 6.35l.7-.7zM8 10h3.5v1H8v-1z"/></svg>"##,

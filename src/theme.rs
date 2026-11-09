@@ -12,26 +12,26 @@ use adw::prelude::*;
 use gtk::{gdk, gio, glib};
 use vte4::prelude::*;
 
-pub const ZED_DARK_PALETTE_CSS: &str = r#"
-@define-color window_bg_color #171a1e;
+pub const DARK_PALETTE_CSS: &str = r#"
+@define-color window_bg_color #101216;
 @define-color window_fg_color #dce0e5;
 @define-color view_bg_color #101216;
 @define-color view_fg_color #dce0e5;
-@define-color headerbar_bg_color #171a1e;
+@define-color headerbar_bg_color #101216;
 @define-color headerbar_fg_color #dce0e5;
-@define-color headerbar_backdrop_color #14171b;
+@define-color headerbar_backdrop_color #101216;
 @define-color headerbar_border_color #2d3139;
-@define-color sidebar_bg_color #171a1e;
+@define-color sidebar_bg_color #101216;
 @define-color sidebar_fg_color #c9cdd5;
-@define-color sidebar_backdrop_color #14171b;
+@define-color sidebar_backdrop_color #101216;
 @define-color sidebar_border_color #2d3139;
-@define-color secondary_sidebar_bg_color #14171b;
+@define-color secondary_sidebar_bg_color #101216;
 @define-color secondary_sidebar_fg_color #c9cdd5;
-@define-color card_bg_color #1d2128;
+@define-color card_bg_color #101216;
 @define-color card_fg_color #dce0e5;
-@define-color dialog_bg_color #191c22;
+@define-color dialog_bg_color #101216;
 @define-color dialog_fg_color #dce0e5;
-@define-color popover_bg_color #191c22;
+@define-color popover_bg_color #101216;
 @define-color popover_fg_color #dce0e5;
 @define-color accent_bg_color #4d78cc;
 @define-color accent_color #74ade8;
@@ -43,25 +43,25 @@ pub const ZED_DARK_PALETTE_CSS: &str = r#"
 @define-color borders #2d3139;
 
 :root {
-    --window-bg-color: #171a1e;
+    --window-bg-color: #101216;
     --window-fg-color: #dce0e5;
     --view-bg-color: #101216;
     --view-fg-color: #dce0e5;
-    --headerbar-bg-color: #171a1e;
+    --headerbar-bg-color: #101216;
     --headerbar-fg-color: #dce0e5;
-    --headerbar-backdrop-color: #14171b;
+    --headerbar-backdrop-color: #101216;
     --headerbar-border-color: #2d3139;
-    --sidebar-bg-color: #171a1e;
+    --sidebar-bg-color: #101216;
     --sidebar-fg-color: #c9cdd5;
-    --sidebar-backdrop-color: #14171b;
+    --sidebar-backdrop-color: #101216;
     --sidebar-border-color: #2d3139;
-    --secondary-sidebar-bg-color: #14171b;
+    --secondary-sidebar-bg-color: #101216;
     --secondary-sidebar-fg-color: #c9cdd5;
-    --card-bg-color: #1d2128;
+    --card-bg-color: #101216;
     --card-fg-color: #dce0e5;
-    --dialog-bg-color: #191c22;
+    --dialog-bg-color: #101216;
     --dialog-fg-color: #dce0e5;
-    --popover-bg-color: #191c22;
+    --popover-bg-color: #101216;
     --popover-fg-color: #dce0e5;
     --accent-bg-color: #4d78cc;
     --accent-color: #74ade8;
@@ -79,26 +79,26 @@ pub const ZED_DARK_PALETTE_CSS: &str = r#"
 }
 "#;
 
-pub const ZED_LIGHT_PALETTE_CSS: &str = r#"
-@define-color window_bg_color #ebebec;
+pub const LIGHT_PALETTE_CSS: &str = r#"
+@define-color window_bg_color #fafafa;
 @define-color window_fg_color #242529;
 @define-color view_bg_color #fafafa;
 @define-color view_fg_color #242529;
-@define-color headerbar_bg_color #ebebec;
+@define-color headerbar_bg_color #fafafa;
 @define-color headerbar_fg_color #242529;
-@define-color headerbar_backdrop_color #eff0f1;
+@define-color headerbar_backdrop_color #fafafa;
 @define-color headerbar_border_color #d2d4d8;
-@define-color sidebar_bg_color #ebebec;
+@define-color sidebar_bg_color #fafafa;
 @define-color sidebar_fg_color #32343a;
-@define-color sidebar_backdrop_color #eff0f1;
+@define-color sidebar_backdrop_color #fafafa;
 @define-color sidebar_border_color #d2d4d8;
-@define-color secondary_sidebar_bg_color #e4e5e7;
+@define-color secondary_sidebar_bg_color #fafafa;
 @define-color secondary_sidebar_fg_color #32343a;
-@define-color card_bg_color #ffffff;
+@define-color card_bg_color #fafafa;
 @define-color card_fg_color #242529;
-@define-color dialog_bg_color #f5f5f6;
+@define-color dialog_bg_color #fafafa;
 @define-color dialog_fg_color #242529;
-@define-color popover_bg_color #ffffff;
+@define-color popover_bg_color #fafafa;
 @define-color popover_fg_color #242529;
 @define-color accent_bg_color #5c78e2;
 @define-color accent_color #3859c9;
@@ -110,25 +110,25 @@ pub const ZED_LIGHT_PALETTE_CSS: &str = r#"
 @define-color borders #d2d4d8;
 
 :root {
-    --window-bg-color: #ebebec;
+    --window-bg-color: #fafafa;
     --window-fg-color: #242529;
     --view-bg-color: #fafafa;
     --view-fg-color: #242529;
-    --headerbar-bg-color: #ebebec;
+    --headerbar-bg-color: #fafafa;
     --headerbar-fg-color: #242529;
-    --headerbar-backdrop-color: #eff0f1;
+    --headerbar-backdrop-color: #fafafa;
     --headerbar-border-color: #d2d4d8;
-    --sidebar-bg-color: #ebebec;
+    --sidebar-bg-color: #fafafa;
     --sidebar-fg-color: #32343a;
-    --sidebar-backdrop-color: #eff0f1;
+    --sidebar-backdrop-color: #fafafa;
     --sidebar-border-color: #d2d4d8;
-    --secondary-sidebar-bg-color: #e4e5e7;
+    --secondary-sidebar-bg-color: #fafafa;
     --secondary-sidebar-fg-color: #32343a;
-    --card-bg-color: #ffffff;
+    --card-bg-color: #fafafa;
     --card-fg-color: #242529;
-    --dialog-bg-color: #f5f5f6;
+    --dialog-bg-color: #fafafa;
     --dialog-fg-color: #242529;
-    --popover-bg-color: #ffffff;
+    --popover-bg-color: #fafafa;
     --popover-fg-color: #242529;
     --accent-bg-color: #5c78e2;
     --accent-color: #3859c9;
@@ -149,37 +149,37 @@ pub const ZED_LIGHT_PALETTE_CSS: &str = r#"
 pub const STYLE_CSS: &str = r#"
 :root {
     --window-radius: 0px;
-    --zed-chrome-bg: var(--headerbar-bg-color, var(--window-bg-color));
-    --zed-chrome-fg: var(--headerbar-fg-color, var(--window-fg-color));
-    --zed-editor-bg: var(--view-bg-color, var(--window-bg-color));
-    --zed-editor-fg: var(--view-fg-color, var(--window-fg-color));
-    --zed-panel-bg: var(--sidebar-bg-color, var(--window-bg-color));
-    --zed-panel-fg: var(--sidebar-fg-color, var(--window-fg-color));
-    --zed-border: color-mix(in srgb, var(--window-fg-color, currentColor) 14%, var(--window-bg-color, transparent));
-    --zed-subtle-border: color-mix(in srgb, var(--view-fg-color, currentColor) 9%, var(--view-bg-color, transparent));
-    --zed-selection-bg: color-mix(in srgb, var(--accent-bg-color, #4d78cc) 28%, var(--zed-panel-bg));
-    --zed-hover-bg: color-mix(in srgb, currentColor 7%, transparent);
+    --riso-chrome-bg: var(--view-bg-color, var(--window-bg-color));
+    --riso-chrome-fg: var(--headerbar-fg-color, var(--window-fg-color));
+    --riso-editor-bg: var(--view-bg-color, var(--window-bg-color));
+    --riso-editor-fg: var(--view-fg-color, var(--window-fg-color));
+    --riso-panel-bg: var(--view-bg-color, var(--window-bg-color));
+    --riso-panel-fg: var(--sidebar-fg-color, var(--window-fg-color));
+    --riso-border: color-mix(in srgb, var(--window-fg-color, currentColor) 14%, var(--view-bg-color, transparent));
+    --riso-subtle-border: color-mix(in srgb, var(--view-fg-color, currentColor) 9%, var(--view-bg-color, transparent));
+    --riso-selection-bg: color-mix(in srgb, var(--accent-bg-color, #4d78cc) 28%, var(--riso-panel-bg));
+    --riso-hover-bg: color-mix(in srgb, currentColor 7%, transparent);
 }
 
 window,
 window.csd,
 window.background {
     border-radius: 0;
-    background-color: var(--zed-chrome-bg);
-    color: var(--zed-chrome-fg);
+    background-color: var(--riso-chrome-bg);
+    color: var(--riso-chrome-fg);
 }
 
-/* Row 1: Ultra-Slim Zed Titlebar */
-.zed-titlebar {
-    background-color: var(--zed-chrome-bg);
-    color: var(--zed-chrome-fg);
-    border-bottom: 1px solid var(--zed-border);
+/* Row 1: Ultra-Slim Titlebar */
+.riso-titlebar {
+    background-color: var(--riso-chrome-bg);
+    color: var(--riso-chrome-fg);
+    border-bottom: 1px solid var(--riso-border);
     min-height: 30px;
     padding: 0 6px;
 }
 
-.zed-titlebar:backdrop {
-    background-color: var(--headerbar-backdrop-color, var(--zed-chrome-bg));
+.riso-titlebar:backdrop {
+    background-color: var(--riso-chrome-bg);
 }
 
 .titlebar-btn,
@@ -191,25 +191,25 @@ window.background {
     box-shadow: none;
 }
 
-.zed-title-app {
+.riso-title-app {
     font-size: 12px;
     font-weight: 600;
     margin-left: 2px;
 }
 
-.zed-title-sep {
+.riso-title-sep {
     font-size: 12px;
     opacity: 0.38;
     margin: 0 2px;
 }
 
-.zed-title-ctx {
+.riso-title-ctx {
     font-size: 12px;
     font-weight: 400;
     opacity: 0.62;
 }
 
-.zed-titlebar windowcontrols button {
+.riso-titlebar windowcontrols button {
     min-width: 22px;
     min-height: 22px;
     padding: 0;
@@ -218,7 +218,7 @@ window.background {
     box-shadow: none;
 }
 
-.zed-titlebar windowcontrols button > image {
+.riso-titlebar windowcontrols button > image {
     background-color: transparent;
     background-image: none;
     border-radius: 3px;
@@ -228,32 +228,32 @@ window.background {
     opacity: 0.72;
 }
 
-.zed-titlebar windowcontrols button:hover > image {
-    background-color: var(--zed-hover-bg);
+.riso-titlebar windowcontrols button:hover > image {
+    background-color: var(--riso-hover-bg);
     opacity: 1.0;
 }
 
-/* Row 2 Left: Zed Tab Bar Row */
-.zed-tabbar-row {
-    background-color: var(--zed-chrome-bg);
-    color: var(--zed-chrome-fg);
+/* Row 2 Left: Tab Bar Row */
+.riso-tabbar-row {
+    background-color: var(--riso-chrome-bg);
+    color: var(--riso-chrome-fg);
     min-height: 34px;
     padding: 0;
 }
 
-.zed-tabbar-row:backdrop {
-    background-color: var(--headerbar-backdrop-color, var(--zed-chrome-bg));
+.riso-tabbar-row:backdrop {
+    background-color: var(--riso-chrome-bg);
 }
 
-.zed-tab-nav {
+.riso-tab-nav {
     padding: 0 4px;
-    border-right: 1px solid var(--zed-border);
-    box-shadow: inset 0 -1px 0 0 var(--zed-border);
+    border-right: 1px solid var(--riso-border);
+    box-shadow: inset 0 -1px 0 0 var(--riso-border);
 }
 
-.zed-tab-actions {
+.riso-tab-actions {
     padding: 0 6px;
-    box-shadow: inset 0 -1px 0 0 var(--zed-border);
+    box-shadow: inset 0 -1px 0 0 var(--riso-border);
 }
 
 .topbar-btn {
@@ -262,90 +262,90 @@ window.background {
     padding: 0 3px;
     border-radius: 3px;
     box-shadow: none;
-    color: color-mix(in srgb, var(--zed-chrome-fg) 70%, transparent);
+    color: color-mix(in srgb, var(--riso-chrome-fg) 70%, transparent);
 }
 
 .topbar-btn:hover {
-    background-color: var(--zed-hover-bg);
-    color: var(--zed-chrome-fg);
+    background-color: var(--riso-hover-bg);
+    color: var(--riso-chrome-fg);
 }
 
 .topbar-btn.active {
     background-color: color-mix(in srgb, var(--accent-bg-color, #4d78cc) 24%, transparent);
-    color: var(--accent-color, var(--zed-chrome-fg));
+    color: var(--accent-color, var(--riso-chrome-fg));
 }
 
 .topbar-btn.active:hover {
     background-color: color-mix(in srgb, var(--accent-bg-color, #4d78cc) 34%, transparent);
 }
 
-.zed-tab-scroll,
-.zed-tab-scroll undershoot.left,
-.zed-tab-scroll undershoot.right,
-.zed-tab-scroll overshoot.left,
-.zed-tab-scroll overshoot.right {
+.riso-tab-scroll,
+.riso-tab-scroll undershoot.left,
+.riso-tab-scroll undershoot.right,
+.riso-tab-scroll overshoot.left,
+.riso-tab-scroll overshoot.right {
     background-color: transparent;
     background-image: none;
     box-shadow: none;
     border: none;
 }
 
-.zed-tab-scroll scrollbar.horizontal {
+.riso-tab-scroll scrollbar.horizontal {
     opacity: 0;
     min-height: 0;
     margin: 0;
     padding: 0;
 }
 
-.zed-tabstrip {
+.riso-tabstrip {
     background-color: transparent;
     padding: 0;
     margin: 0;
 }
 
-.zed-tab-filler {
+.riso-tab-filler {
     background-color: transparent;
-    box-shadow: inset 0 -1px 0 0 var(--zed-border);
+    box-shadow: inset 0 -1px 0 0 var(--riso-border);
 }
 
-.zed-tab {
+.riso-tab {
     background-color: transparent;
-    color: color-mix(in srgb, var(--zed-chrome-fg) 58%, transparent);
-    border-right: 1px solid var(--zed-border);
-    box-shadow: inset 0 -1px 0 0 var(--zed-border);
+    color: color-mix(in srgb, var(--riso-chrome-fg) 58%, transparent);
+    border-right: 1px solid var(--riso-border);
+    box-shadow: inset 0 -1px 0 0 var(--riso-border);
     min-height: 34px;
     padding: 0 8px 0 13px;
     font-size: 12px;
     font-weight: 400;
 }
 
-.zed-tab:hover {
-    background-color: color-mix(in srgb, var(--zed-chrome-fg) 5%, var(--zed-chrome-bg));
-    color: color-mix(in srgb, var(--zed-chrome-fg) 88%, transparent);
+.riso-tab:hover {
+    background-color: color-mix(in srgb, var(--riso-chrome-fg) 5%, var(--riso-chrome-bg));
+    color: color-mix(in srgb, var(--riso-chrome-fg) 88%, transparent);
 }
 
-.zed-tab.active {
-    background-color: var(--zed-editor-bg);
-    color: var(--zed-editor-fg);
+.riso-tab.active {
+    background-color: var(--riso-editor-bg);
+    color: var(--riso-editor-fg);
     font-weight: 500;
     box-shadow: none;
 }
 
-.zed-tab-label {
+.riso-tab-label {
     margin-right: 2px;
 }
 
-.zed-tab-dot {
+.riso-tab-dot {
     font-size: 11px;
     color: var(--accent-color, #74ade8);
     margin-right: 2px;
 }
 
-.zed-tab-dot.loading {
+.riso-tab-dot.loading {
     color: var(--warning-color, #e5c07b);
 }
 
-.zed-tab-close {
+.riso-tab-close {
     min-width: 16px;
     min-height: 16px;
     padding: 1px;
@@ -355,58 +355,58 @@ window.background {
     opacity: 0.0;
 }
 
-.zed-tab.active .zed-tab-close,
-.zed-tab:hover .zed-tab-close {
+.riso-tab.active .riso-tab-close,
+.riso-tab:hover .riso-tab-close {
     opacity: 0.56;
 }
 
-.zed-tab .zed-tab-close:hover {
+.riso-tab .riso-tab-close:hover {
     opacity: 1.0;
-    background-color: var(--zed-hover-bg);
+    background-color: var(--riso-hover-bg);
 }
 
-/* Zed Session Breadcrumb / Sub-header Bar */
-.zed-subheader {
-    background-color: var(--zed-editor-bg);
-    color: var(--zed-editor-fg);
-    border-bottom: 1px solid var(--zed-subtle-border);
+/* Session Breadcrumb / Sub-header Bar */
+.riso-subheader {
+    background-color: var(--riso-editor-bg);
+    color: var(--riso-editor-fg);
+    border-bottom: 1px solid var(--riso-subtle-border);
     min-height: 28px;
     padding: 0 10px;
 }
 
-.zed-crumb-root {
+.riso-crumb-root {
     font-size: 12px;
     opacity: 0.5;
 }
 
-.zed-crumb-sep {
+.riso-crumb-sep {
     font-size: 12px;
     opacity: 0.36;
     margin: 0 6px;
 }
 
-.zed-crumb-target {
+.riso-crumb-target {
     font-size: 12px;
     opacity: 0.65;
 }
 
-.zed-crumb-target.active {
+.riso-crumb-target.active {
     opacity: 1.0;
-    color: var(--accent-color, var(--zed-editor-fg));
+    color: var(--accent-color, var(--riso-editor-fg));
     font-weight: 500;
 }
 
-.zed-crumb-path {
+.riso-crumb-path {
     font-family: monospace;
     font-size: 11.5px;
     opacity: 0.74;
 }
 
-.zed-action-btn {
+.riso-action-btn {
     background-color: transparent;
     background-image: none;
-    color: var(--accent-color, var(--zed-editor-fg));
-    border: 1px solid color-mix(in srgb, var(--accent-color, currentColor) 45%, var(--zed-border));
+    color: var(--accent-color, var(--riso-editor-fg));
+    border: 1px solid color-mix(in srgb, var(--accent-color, currentColor) 45%, var(--riso-border));
     border-radius: 2px;
     box-shadow: none;
     min-height: 20px;
@@ -416,7 +416,7 @@ window.background {
     font-weight: 400;
 }
 
-.zed-action-btn:hover {
+.riso-action-btn:hover {
     background-color: color-mix(in srgb, var(--accent-bg-color, #4d78cc) 18%, transparent);
     border-color: var(--accent-color, currentColor);
 }
@@ -431,31 +431,31 @@ window.background {
 
 .subheader-icon-btn:hover {
     opacity: 1.0;
-    background-color: var(--zed-hover-bg);
+    background-color: var(--riso-hover-bg);
 }
 
 /* Right Dock: SFTP Explorer Panel */
-paned.zed-paned > separator,
+paned.riso-paned > separator,
 paned > separator {
-    background-color: var(--zed-border);
+    background-color: var(--riso-border);
     background-image: none;
     min-width: 1px;
     min-height: 1px;
 }
 
-.zed-dock,
+.riso-dock,
 .explorer-sidebar {
-    background-color: var(--zed-panel-bg);
-    color: var(--zed-panel-fg);
+    background-color: var(--riso-panel-bg);
+    color: var(--riso-panel-fg);
 }
 
 .explorer-sidebar:backdrop {
-    background-color: var(--sidebar-backdrop-color, var(--zed-panel-bg));
+    background-color: var(--riso-panel-bg);
 }
 
 .explorer-toolbar {
-    background-color: var(--zed-panel-bg);
-    box-shadow: inset 0 -1px 0 0 var(--zed-border);
+    background-color: var(--riso-panel-bg);
+    box-shadow: inset 0 -1px 0 0 var(--riso-border);
     border: none;
     padding: 0 6px;
     min-height: 34px;
@@ -478,7 +478,7 @@ entry.path-entry {
     outline: none;
     font-size: 12px;
     font-family: monospace;
-    color: var(--zed-panel-fg);
+    color: var(--riso-panel-fg);
 }
 
 entry.path-entry:focus-within {
@@ -497,13 +497,13 @@ entry.path-entry:disabled {
     padding: 0 2px;
     border-radius: 3px;
     box-shadow: none;
-    color: color-mix(in srgb, var(--zed-panel-fg) 72%, transparent);
+    color: color-mix(in srgb, var(--riso-panel-fg) 72%, transparent);
 }
 
 .icon-btn:hover,
 .icon-btn > button:hover {
-    background-color: var(--zed-hover-bg);
-    color: var(--zed-panel-fg);
+    background-color: var(--riso-hover-bg);
+    color: var(--riso-panel-fg);
 }
 
 .thin-progress,
@@ -521,7 +521,7 @@ entry.path-entry:disabled {
 
 .explorer-tree {
     background-color: transparent;
-    color: var(--zed-panel-fg);
+    color: var(--riso-panel-fg);
     font-size: 12.5px;
     padding: 2px 0;
 }
@@ -535,16 +535,16 @@ entry.path-entry:disabled {
 }
 
 .explorer-tree > row:hover {
-    background-color: color-mix(in srgb, var(--zed-panel-fg) 6%, transparent);
+    background-color: color-mix(in srgb, var(--riso-panel-fg) 6%, transparent);
 }
 
 .explorer-tree > row:selected {
-    background-color: var(--zed-selection-bg);
-    color: var(--zed-editor-fg);
+    background-color: var(--riso-selection-bg);
+    color: var(--riso-editor-fg);
 }
 
 .explorer-tree > row:selected:hover {
-    background-color: color-mix(in srgb, var(--accent-bg-color, #4d78cc) 35%, var(--zed-panel-bg));
+    background-color: color-mix(in srgb, var(--accent-bg-color, #4d78cc) 35%, var(--riso-panel-bg));
 }
 
 .explorer-tree-icon {
@@ -565,16 +565,16 @@ entry.path-entry:disabled {
 /* Terminal & Drop Overlay */
 .session-view,
 .terminal-box {
-    background-color: var(--zed-editor-bg);
-    color: var(--zed-editor-fg);
+    background-color: var(--riso-editor-bg);
+    color: var(--riso-editor-fg);
 }
 
 .session-terminal {
-    color: var(--zed-editor-fg);
+    color: var(--riso-editor-fg);
 }
 
 .drop-overlay {
-    background-color: color-mix(in srgb, var(--zed-editor-bg) 82%, transparent);
+    background-color: color-mix(in srgb, var(--riso-editor-bg) 82%, transparent);
 }
 
 .drop-card {
@@ -590,99 +590,16 @@ entry.path-entry:disabled {
     outline-offset: -1px;
 }
 
-/* Row 3: Full-Width Bottom Zed Status Bar */
-.zed-statusbar {
-    background-color: var(--zed-chrome-bg);
-    color: color-mix(in srgb, var(--zed-chrome-fg) 66%, transparent);
-    border-top: 1px solid var(--zed-border);
-    padding: 0 8px;
-    min-height: 24px;
-    font-family: monospace;
-    font-size: 11px;
-}
-
-.zed-statusbar:backdrop {
-    background-color: var(--headerbar-backdrop-color, var(--zed-chrome-bg));
-}
-
-.status-dot {
-    font-size: 9px;
-}
-
-.status-dot.idle {
-    opacity: 0.35;
-}
-
-.status-dot.ok {
-    color: var(--success-color, #73c991);
-}
-
-.status-dot.wait {
-    color: var(--warning-color, #e5c07b);
-}
-
-.status-dot.err {
-    color: var(--error-color, #e06c75);
-}
-
-.status-text {
-    font-size: 11px;
-}
-
-.sync-badge {
-    color: var(--success-color, #73c991);
-    font-family: monospace;
-    font-size: 11px;
-    margin-left: 6px;
-}
-
-.status-meta {
-    opacity: 0.56;
-    font-size: 11px;
-    margin-right: 6px;
-}
-
-.status-meta-host {
-    opacity: 0.78;
-    font-size: 11px;
-    margin-right: 6px;
-}
-
-.status-proto {
-    opacity: 0.56;
-    font-size: 11px;
-    margin-right: 2px;
-}
-
-.statusbar-icon-btn {
-    min-width: 20px;
-    min-height: 18px;
-    padding: 0 3px;
-    border-radius: 2px;
-    box-shadow: none;
-    opacity: 0.68;
-}
-
-.statusbar-icon-btn:hover {
-    opacity: 1.0;
-    background-color: var(--zed-hover-bg);
-}
-
-.statusbar-icon-btn.active {
-    opacity: 0.95;
-    color: var(--accent-color, inherit);
-}
-
 .muted-label {
     opacity: 0.52;
     font-size: 11.5px;
 }
 
-/* Zed Popovers, Context Menus, Toasts, Scrollbars & Quick-Pick Modals */
+/* Popovers, Context Menus, Toasts, Scrollbars & Quick-Pick Modals */
 popover > contents {
-    background-color: var(--popover-bg-color, var(--zed-chrome-bg));
-    color: var(--popover-fg-color, var(--zed-chrome-fg));
-    border: 1px solid var(--zed-border);
+    background-color: var(--popover-bg-color, var(--riso-chrome-bg));
+    color: var(--popover-fg-color, var(--riso-chrome-fg));
+    border: 1px solid var(--riso-border);
     border-radius: 4px;
     padding: 3px;
     box-shadow: 0 6px 18px rgba(0, 0, 0, 0.38);
@@ -697,13 +614,13 @@ popover modelbutton {
 
 popover modelbutton:hover,
 popover modelbutton:selected {
-    background-color: var(--zed-selection-bg);
-    color: var(--zed-editor-fg);
+    background-color: var(--riso-selection-bg);
+    color: var(--riso-editor-fg);
 }
 
 popover separator {
     margin: 3px 0;
-    background-color: var(--zed-border);
+    background-color: var(--riso-border);
     min-height: 1px;
 }
 
@@ -726,27 +643,27 @@ popover.suggest-popover > contents {
 }
 
 .suggest-list > row:hover {
-    background-color: var(--zed-hover-bg);
+    background-color: var(--riso-hover-bg);
 }
 
 .suggest-list > row:selected {
-    background-color: var(--zed-selection-bg);
-    color: var(--zed-editor-fg);
+    background-color: var(--riso-selection-bg);
+    color: var(--riso-editor-fg);
 }
 
 .picker-dialog {
     padding: 8px;
-    background-color: var(--dialog-bg-color, var(--zed-chrome-bg));
+    background-color: var(--dialog-bg-color, var(--riso-chrome-bg));
 }
 
 entry.picker-input,
-entry.zed-dialog-entry {
+entry.riso-dialog-entry {
     min-height: 28px;
     padding: 0 8px;
     border-radius: 3px;
-    border: 1px solid var(--zed-border);
-    background-color: var(--zed-editor-bg);
-    color: var(--zed-editor-fg);
+    border: 1px solid var(--riso-border);
+    background-color: var(--riso-editor-bg);
+    color: var(--riso-editor-fg);
     box-shadow: none;
     font-size: 12.5px;
 }
@@ -756,7 +673,7 @@ entry.picker-input {
 }
 
 entry.picker-input:focus-within,
-entry.zed-dialog-entry:focus-within {
+entry.riso-dialog-entry:focus-within {
     border-color: var(--accent-color, currentColor);
 }
 
@@ -771,12 +688,12 @@ entry.zed-dialog-entry:focus-within {
 }
 
 .picker-list > row:hover {
-    background-color: var(--zed-hover-bg);
+    background-color: var(--riso-hover-bg);
 }
 
 .picker-list > row:selected {
-    background-color: var(--zed-selection-bg);
-    color: var(--zed-editor-fg);
+    background-color: var(--riso-selection-bg);
+    color: var(--riso-editor-fg);
 }
 
 .picker-row {
@@ -786,9 +703,9 @@ entry.zed-dialog-entry:focus-within {
 
 toast {
     border-radius: 4px;
-    border: 1px solid var(--zed-border);
-    background-color: var(--popover-bg-color, var(--zed-chrome-bg));
-    color: var(--popover-fg-color, var(--zed-chrome-fg));
+    border: 1px solid var(--riso-border);
+    background-color: var(--popover-bg-color, var(--riso-chrome-bg));
+    color: var(--popover-fg-color, var(--riso-chrome-fg));
     box-shadow: 0 4px 14px rgba(0, 0, 0, 0.36);
 }
 
@@ -897,7 +814,7 @@ struct ThemeManager {
     gtk_css_path: PathBuf,
     startup_inspection: CssInspection,
 
-    zed_base_provider: gtk::CssProvider,
+    base_palette_provider: gtk::CssProvider,
     configured_theme_provider: gtk::CssProvider,
     reset_provider: gtk::CssProvider,
     live_user_provider: gtk::CssProvider,
@@ -918,11 +835,11 @@ struct ThemeManager {
 /// symlinks), `settings.ini`, `gsettings` / `dconf`, `adw::StyleManager`, and
 /// `gtk::Settings`.
 pub fn init(app: &adw::Application, display: &gdk::Display) {
-    let zed_base_provider = gtk::CssProvider::new();
-    zed_base_provider.load_from_string(ZED_DARK_PALETTE_CSS);
+    let base_palette_provider = gtk::CssProvider::new();
+    base_palette_provider.load_from_string(DARK_PALETTE_CSS);
     gtk::style_context_add_provider_for_display(
         display,
-        &zed_base_provider,
+        &base_palette_provider,
         gtk::STYLE_PROVIDER_PRIORITY_THEME + 1,
     );
 
@@ -992,7 +909,7 @@ pub fn init(app: &adw::Application, display: &gdk::Display) {
         dconf_dir,
         gtk_css_path,
         startup_inspection,
-        zed_base_provider,
+        base_palette_provider,
         configured_theme_provider,
         reset_provider,
         live_user_provider,
@@ -1069,7 +986,8 @@ impl ThemeManager {
                 if matches!(key, "color-scheme" | "gtk-theme" | "accent-color")
                     && let Some(this) = weak.upgrade()
                 {
-                    *this.last_gs_snapshot.borrow_mut() = snapshot_gsettings(this.gsettings.as_ref());
+                    *this.last_gs_snapshot.borrow_mut() =
+                        snapshot_gsettings(this.gsettings.as_ref());
                     this.schedule_reload();
                 }
             });
@@ -1248,23 +1166,22 @@ impl ThemeManager {
             return;
         }
 
-        // 2. Default to `PreferDark` (Zed Dark) unless an explicit light
+        // 2. Default to `PreferDark` unless an explicit light
         //    preference (`prefer-light` or `-light` theme) is configured;
         //    `PreferDark` still honors `prefer-light` from desktop portals.
         let gs_explicit = gsettings_explicit_color_scheme(self.gsettings.as_ref());
-        let explicit_pref = gs_explicit
-            .or_else(|| {
-                if is_gnome_desktop() {
-                    gsettings_theme_prefers_dark(self.gsettings.as_ref())
-                        .or_else(env_theme_prefers_dark)
-                } else {
-                    ini_prefers_dark(&self.gtk4_dir)
-                        .or_else(|| gsettings_theme_prefers_dark(self.gsettings.as_ref()))
-                        .or_else(|| ini_prefers_dark(&self.gtk3_dir))
-                        .or_else(|| gtk_settings_prefers_dark(&self.display))
-                        .or_else(env_theme_prefers_dark)
-                }
-            });
+        let explicit_pref = gs_explicit.or_else(|| {
+            if is_gnome_desktop() {
+                gsettings_theme_prefers_dark(self.gsettings.as_ref())
+                    .or_else(env_theme_prefers_dark)
+            } else {
+                ini_prefers_dark(&self.gtk4_dir)
+                    .or_else(|| gsettings_theme_prefers_dark(self.gsettings.as_ref()))
+                    .or_else(|| ini_prefers_dark(&self.gtk3_dir))
+                    .or_else(|| gtk_settings_prefers_dark(&self.display))
+                    .or_else(env_theme_prefers_dark)
+            }
+        });
 
         style_manager.set_color_scheme(match explicit_pref {
             Some(false) => adw::ColorScheme::ForceLight,
@@ -1277,11 +1194,11 @@ impl ThemeManager {
         let dark = style_manager.is_dark();
         let accent = style_manager.accent_color_rgba();
 
-        // 0. Base Zed palette (overridden by configured/user GTK themes when set)
-        self.zed_base_provider.load_from_string(if dark {
-            ZED_DARK_PALETTE_CSS
+        // 0. Base palette (overridden by configured/user GTK themes when set)
+        self.base_palette_provider.load_from_string(if dark {
+            DARK_PALETTE_CSS
         } else {
-            ZED_LIGHT_PALETTE_CSS
+            LIGHT_PALETTE_CSS
         });
 
         // 1. Configured named GTK4 theme palette (`GTK_THEME`, `settings.ini`, `gsettings`)
@@ -1315,8 +1232,8 @@ impl ThemeManager {
 
         // 2. Live `~/.config/gtk-4.0/gtk.css` reload
         if self.gtk_css_path.exists() {
-            let target = fs::canonicalize(&self.gtk_css_path)
-                .unwrap_or_else(|_| self.gtk_css_path.clone());
+            let target =
+                fs::canonicalize(&self.gtk_css_path).unwrap_or_else(|_| self.gtk_css_path.clone());
             self.live_user_provider.load_from_path(&target);
         } else {
             self.live_user_provider.load_from_string("");
@@ -1411,7 +1328,10 @@ fn watch_dir(
 ) -> Option<gio::FileMonitor> {
     let gfile = gio::File::for_path(dir);
     let monitor = gfile
-        .monitor_directory(gio::FileMonitorFlags::WATCH_MOVES, None::<&gio::Cancellable>)
+        .monitor_directory(
+            gio::FileMonitorFlags::WATCH_MOVES,
+            None::<&gio::Cancellable>,
+        )
         .ok()?;
     monitor.connect_changed(move |_, file, other, event| {
         use gio::FileMonitorEvent as E;
@@ -1434,7 +1354,10 @@ fn watch_dir(
 
 fn is_watched_config_subdir(file: &gio::File) -> bool {
     file.basename()
-        .and_then(|n| n.to_str().map(|s| matches!(s, "gtk-4.0" | "gtk-3.0" | "dconf")))
+        .and_then(|n| {
+            n.to_str()
+                .map(|s| matches!(s, "gtk-4.0" | "gtk-3.0" | "dconf"))
+        })
         .unwrap_or(false)
 }
 
@@ -1738,11 +1661,7 @@ fn collect_watch_targets(
 /// directory symlinks (e.g. `~/.config/omarchy/current/theme/gtk.css`) register
 /// exact-name watches on their parent directories (`~/.config/omarchy` watching
 /// `"current"`).
-fn walk_symlink_chain(
-    path: &Path,
-    hops: usize,
-    targets: &mut HashMap<PathBuf, WatchFilter>,
-) {
+fn walk_symlink_chain(path: &Path, hops: usize, targets: &mut HashMap<PathBuf, WatchFilter>) {
     if hops > 12 {
         return;
     }
@@ -2038,11 +1957,21 @@ fn build_bridge_css(ins: &CssInspection) -> String {
         ),
         (
             "theme_base_color",
-            &["view_bg_color", "card_bg_color", "popover_bg_color", "dialog_bg_color"],
+            &[
+                "view_bg_color",
+                "card_bg_color",
+                "popover_bg_color",
+                "dialog_bg_color",
+            ],
         ),
         (
             "theme_text_color",
-            &["view_fg_color", "card_fg_color", "popover_fg_color", "dialog_fg_color"],
+            &[
+                "view_fg_color",
+                "card_fg_color",
+                "popover_fg_color",
+                "dialog_fg_color",
+            ],
         ),
         (
             "theme_selected_bg_color",
@@ -2236,23 +2165,23 @@ fn adwaita_default_color(name: &str, dark: bool, accent: &gdk::RGBA) -> Option<S
     }
     let val = if dark {
         match name {
-            "window_bg_color" => "#171a1e",
+            "window_bg_color" => "#101216",
             "window_fg_color" => "#dce0e5",
             "view_bg_color" => "#101216",
             "view_fg_color" => "#dce0e5",
-            "headerbar_bg_color" => "#171a1e",
+            "headerbar_bg_color" => "#101216",
             "headerbar_fg_color" => "#dce0e5",
-            "headerbar_backdrop_color" => "#14171b",
+            "headerbar_backdrop_color" => "#101216",
             "headerbar_border_color" => "#2d3139",
-            "sidebar_bg_color" => "#171a1e",
+            "sidebar_bg_color" => "#101216",
             "sidebar_fg_color" => "#c9cdd5",
-            "sidebar_backdrop_color" => "#14171b",
+            "sidebar_backdrop_color" => "#101216",
             "sidebar_border_color" => "#2d3139",
-            "secondary_sidebar_bg_color" => "#14171b",
+            "secondary_sidebar_bg_color" => "#101216",
             "secondary_sidebar_fg_color" => "#c9cdd5",
-            "card_bg_color" => "#1d2128",
+            "card_bg_color" => "#101216",
             "card_fg_color" => "#dce0e5",
-            "dialog_bg_color" | "popover_bg_color" => "#191c22",
+            "dialog_bg_color" | "popover_bg_color" => "#101216",
             "dialog_fg_color" | "popover_fg_color" => "#dce0e5",
             "borders" | "border_color" => "#2d3139",
             "success_color" => "#73c991",
@@ -2262,22 +2191,18 @@ fn adwaita_default_color(name: &str, dark: bool, accent: &gdk::RGBA) -> Option<S
         }
     } else {
         match name {
-            "window_bg_color" | "headerbar_bg_color" | "sidebar_bg_color" => "#ebebec",
-            "headerbar_backdrop_color" | "sidebar_backdrop_color" => "#eff0f1",
-            "dialog_bg_color" => "#f5f5f6",
-            "window_fg_color"
-            | "view_fg_color"
-            | "headerbar_fg_color"
-            | "card_fg_color"
-            | "dialog_fg_color"
-            | "popover_fg_color" => "#242529",
+            "window_bg_color" | "headerbar_bg_color" | "sidebar_bg_color" => "#fafafa",
+            "headerbar_backdrop_color" | "sidebar_backdrop_color" => "#fafafa",
+            "dialog_bg_color" => "#fafafa",
+            "window_fg_color" | "view_fg_color" | "headerbar_fg_color" | "card_fg_color"
+            | "dialog_fg_color" | "popover_fg_color" => "#242529",
             "sidebar_fg_color" | "secondary_sidebar_fg_color" => "#32343a",
             "view_bg_color" => "#fafafa",
-            "card_bg_color" | "popover_bg_color" => "#ffffff",
+            "card_bg_color" | "popover_bg_color" => "#fafafa",
             "headerbar_border_color" | "sidebar_border_color" | "borders" | "border_color" => {
                 "#d2d4d8"
             }
-            "secondary_sidebar_bg_color" => "#e4e5e7",
+            "secondary_sidebar_bg_color" => "#fafafa",
             "success_color" => "#2d8f5e",
             "warning_color" => "#b27d12",
             "error_color" | "destructive_color" => "#d13b47",
@@ -2413,7 +2338,11 @@ fn resolve_gtk_colors(term: &vte4::Terminal) -> ResolvedTheme {
         accent,
         red: pick_hue("riso-probe-red", &["red_3", "error_color"], 0xe01b24),
         green: pick_hue("riso-probe-green", &["green_3", "success_color"], 0x33d17a),
-        yellow: pick_hue("riso-probe-yellow", &["yellow_3", "warning_color"], 0xf6d32d),
+        yellow: pick_hue(
+            "riso-probe-yellow",
+            &["yellow_3", "warning_color"],
+            0xf6d32d,
+        ),
         blue: pick_hue("riso-probe-blue", &["blue_3"], 0x3584e4),
         purple: pick_hue("riso-probe-purple", &["purple_3"], 0x9141ac),
     }
@@ -2581,8 +2510,8 @@ mod tests {
             return;
         }
         for css in [
-            ZED_DARK_PALETTE_CSS,
-            ZED_LIGHT_PALETTE_CSS,
+            DARK_PALETTE_CSS,
+            LIGHT_PALETTE_CSS,
             STYLE_CSS,
             PROBE_CSS,
         ] {
@@ -2644,7 +2573,9 @@ mod tests {
 
         let ins = inspect_css_tree(&gtk_css);
         assert_eq!(
-            ins.define_colors.get("theme_base_color").map(String::as_str),
+            ins.define_colors
+                .get("theme_base_color")
+                .map(String::as_str),
             Some("#181825")
         );
         assert_eq!(
@@ -2670,7 +2601,8 @@ mod tests {
         #[cfg(unix)]
         {
             let targets = collect_watch_targets(&gtk4_dir, &gtk_css, None);
-            let omarchy_parent = fs::canonicalize(work.join("omarchy")).unwrap_or(work.join("omarchy"));
+            let omarchy_parent =
+                fs::canonicalize(work.join("omarchy")).unwrap_or(work.join("omarchy"));
             let has_current_watch = targets.iter().any(|(dir, filter)| {
                 let d = fs::canonicalize(dir).unwrap_or_else(|_| dir.clone());
                 d == omarchy_parent
@@ -2679,7 +2611,10 @@ mod tests {
                         WatchFilter::ExactNames(s) => s.contains("current"),
                     }
             });
-            assert!(has_current_watch, "expected intermediate symlink watch on omarchy/current");
+            assert!(
+                has_current_watch,
+                "expected intermediate symlink watch on omarchy/current"
+            );
         }
 
         let _ = fs::remove_dir_all(&work);

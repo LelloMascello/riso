@@ -1,6 +1,5 @@
-//! Main application window: Zed-inspired workspace with ultra-slim titlebar,
-//! rectangular bordered tab bar, right SFTP explorer dock, and full-width
-//! bottom status bar.
+//! Main application window: workspace with ultra-slim titlebar,
+//! rectangular bordered tab bar, and right SFTP explorer dock.
 
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
@@ -22,13 +21,7 @@ pub struct AppWindow {
     dock_box: gtk::Box,
     explorer_stack: gtk::Stack,
     sidebar_btn: gtk::Button,
-    status_dock_btn: gtk::Button,
     title_ctx: gtk::Label,
-    status_dot: gtk::Label,
-    status_label: gtk::Label,
-    sync_label: gtk::Label,
-    cwd_status_label: gtk::Label,
-    host_status_label: gtk::Label,
     store: Rc<HostStore>,
     tabs: RefCell<HashMap<adw::Bin, Rc<Session>>>,
     tab_widgets: RefCell<HashMap<adw::TabPage, gtk::Box>>,
@@ -63,7 +56,7 @@ impl AppWindow {
         tab_menu.append(Some("Chiudi le altre"), Some("win.close-other-tabs"));
         tab_view.set_menu_model(Some(&tab_menu));
 
-        // -- Row 1: Ultra-Slim Zed Titlebar ----------------------------------
+        // -- Row 1: Ultra-Slim Titlebar --------------------------------------
         let start_controls = gtk::WindowControls::new(gtk::PackType::Start);
         let end_controls = gtk::WindowControls::new(gtk::PackType::End);
 
@@ -93,20 +86,20 @@ impl AppWindow {
         menu_btn.set_valign(gtk::Align::Center);
 
         let title_app = gtk::Label::new(Some("riso"));
-        title_app.add_css_class("zed-title-app");
+        title_app.add_css_class("riso-title-app");
 
         let title_sep = gtk::Label::new(Some("/"));
-        title_sep.add_css_class("zed-title-sep");
+        title_sep.add_css_class("riso-title-sep");
 
         let title_ctx = gtk::Label::new(Some("ssh"));
-        title_ctx.add_css_class("zed-title-ctx");
+        title_ctx.add_css_class("riso-title-ctx");
         title_ctx.set_ellipsize(gtk::pango::EllipsizeMode::End);
 
         let title_spacer = gtk::Box::new(gtk::Orientation::Horizontal, 0);
         title_spacer.set_hexpand(true);
 
         let title_row = gtk::Box::new(gtk::Orientation::Horizontal, 4);
-        title_row.add_css_class("zed-titlebar");
+        title_row.add_css_class("riso-titlebar");
         title_row.append(&start_controls);
         title_row.append(&menu_btn);
         title_row.append(&title_app);
@@ -118,7 +111,7 @@ impl AppWindow {
         let title_handle = gtk::WindowHandle::new();
         title_handle.set_child(Some(&title_row));
 
-        // -- Row 2 Left: Zed Tab Bar + Session Workspace ---------------------
+        // -- Row 2 Left: Tab Bar + Session Workspace -------------------------
         let prev_btn = gtk::Button::from_icon_name("riso-chevron-left-symbolic");
         prev_btn.add_css_class("flat");
         prev_btn.add_css_class("topbar-btn");
@@ -134,15 +127,15 @@ impl AppWindow {
         next_btn.set_valign(gtk::Align::Center);
 
         let nav_box = gtk::Box::new(gtk::Orientation::Horizontal, 1);
-        nav_box.add_css_class("zed-tab-nav");
+        nav_box.add_css_class("riso-tab-nav");
         nav_box.append(&prev_btn);
         nav_box.append(&next_btn);
 
         let tab_strip = gtk::Box::new(gtk::Orientation::Horizontal, 0);
-        tab_strip.add_css_class("zed-tabstrip");
+        tab_strip.add_css_class("riso-tabstrip");
 
         let tab_filler = gtk::Box::new(gtk::Orientation::Horizontal, 0);
-        tab_filler.add_css_class("zed-tab-filler");
+        tab_filler.add_css_class("riso-tab-filler");
         tab_filler.set_hexpand(true);
 
         let tab_strip_wrap = gtk::Box::new(gtk::Orientation::Horizontal, 0);
@@ -151,7 +144,7 @@ impl AppWindow {
         tab_strip_wrap.append(&tab_filler);
 
         let tab_scroll = gtk::ScrolledWindow::new();
-        tab_scroll.add_css_class("zed-tab-scroll");
+        tab_scroll.add_css_class("riso-tab-scroll");
         tab_scroll.set_policy(gtk::PolicyType::Automatic, gtk::PolicyType::Never);
         tab_scroll.set_propagate_natural_height(true);
         tab_scroll.set_has_frame(false);
@@ -195,12 +188,12 @@ impl AppWindow {
         sidebar_btn.set_valign(gtk::Align::Center);
 
         let tab_actions = gtk::Box::new(gtk::Orientation::Horizontal, 2);
-        tab_actions.add_css_class("zed-tab-actions");
+        tab_actions.add_css_class("riso-tab-actions");
         tab_actions.append(&add_btn);
         tab_actions.append(&sidebar_btn);
 
         let tab_row = gtk::Box::new(gtk::Orientation::Horizontal, 0);
-        tab_row.add_css_class("zed-tabbar-row");
+        tab_row.add_css_class("riso-tabbar-row");
         tab_row.append(&nav_box);
         tab_row.append(&tab_scroll);
         tab_row.append(&tab_actions);
@@ -211,19 +204,19 @@ impl AppWindow {
         main_pane.append(&tab_row);
         main_pane.append(&tab_view);
 
-        // -- Row 2 Right: Zed SFTP Explorer Dock -----------------------------
+        // -- Row 2 Right: SFTP Explorer Dock ---------------------------------
         let explorer_stack = gtk::Stack::new();
         explorer_stack.set_transition_type(gtk::StackTransitionType::None);
         explorer_stack.set_vexpand(true);
         explorer_stack.set_hexpand(true);
 
         let dock_box = gtk::Box::new(gtk::Orientation::Vertical, 0);
-        dock_box.add_css_class("zed-dock");
+        dock_box.add_css_class("riso-dock");
         dock_box.set_size_request(200, -1);
         dock_box.append(&explorer_stack);
 
         let paned = gtk::Paned::new(gtk::Orientation::Horizontal);
-        paned.add_css_class("zed-paned");
+        paned.add_css_class("riso-paned");
         paned.set_start_child(Some(&main_pane));
         paned.set_end_child(Some(&dock_box));
         paned.set_resize_start_child(true);
@@ -246,69 +239,9 @@ impl AppWindow {
             glib::ControlFlow::Continue
         });
 
-        // -- Row 3: Full-Width Bottom Zed Status Bar -------------------------
-        let statusbar = gtk::Box::new(gtk::Orientation::Horizontal, 8);
-        statusbar.add_css_class("zed-statusbar");
-
-        let status_dot = gtk::Label::new(Some("●"));
-        status_dot.add_css_class("status-dot");
-        status_dot.add_css_class("idle");
-
-        let status_label = gtk::Label::new(Some("Pronto"));
-        status_label.add_css_class("status-text");
-
-        let sync_label = gtk::Label::new(None);
-        sync_label.add_css_class("sync-badge");
-        sync_label.set_visible(false);
-
-        let status_spacer = gtk::Box::new(gtk::Orientation::Horizontal, 0);
-        status_spacer.set_hexpand(true);
-
-        let cwd_status_label = gtk::Label::new(None);
-        cwd_status_label.add_css_class("status-meta");
-        cwd_status_label.set_ellipsize(gtk::pango::EllipsizeMode::Middle);
-        cwd_status_label.set_max_width_chars(36);
-        cwd_status_label.set_visible(false);
-
-        let host_status_label = gtk::Label::new(None);
-        host_status_label.add_css_class("status-meta-host");
-        host_status_label.set_visible(false);
-
-        let proto_label = gtk::Label::new(Some("SSH"));
-        proto_label.add_css_class("status-proto");
-
-        let status_term_btn = gtk::Button::from_icon_name("riso-terminal-symbolic");
-        status_term_btn.add_css_class("flat");
-        status_term_btn.add_css_class("statusbar-icon-btn");
-        status_term_btn.set_action_name(Some("win.new-tab"));
-        status_term_btn.set_tooltip_text(Some("Nuova connessione (Ctrl+Shift+T)"));
-        status_term_btn.set_valign(gtk::Align::Center);
-
-        let status_dock_btn = gtk::Button::from_icon_name("riso-sidebar-symbolic");
-        status_dock_btn.add_css_class("flat");
-        status_dock_btn.add_css_class("statusbar-icon-btn");
-        status_dock_btn.add_css_class("active");
-        status_dock_btn.set_action_name(Some("win.toggle-sidebar"));
-        status_dock_btn.set_tooltip_text(Some("Esplora file (Ctrl+Shift+B)"));
-        status_dock_btn.set_valign(gtk::Align::Center);
-
-        let status_right_icons = gtk::Box::new(gtk::Orientation::Horizontal, 2);
-        status_right_icons.append(&status_term_btn);
-        status_right_icons.append(&status_dock_btn);
-
-        statusbar.append(&status_dot);
-        statusbar.append(&status_label);
-        statusbar.append(&sync_label);
-        statusbar.append(&status_spacer);
-        statusbar.append(&cwd_status_label);
-        statusbar.append(&host_status_label);
-        statusbar.append(&proto_label);
-        statusbar.append(&status_right_icons);
-
         let main_box = gtk::Box::new(gtk::Orientation::Vertical, 0);
         main_box.append(&title_handle);
         main_box.append(&paned);
-        main_box.append(&statusbar);
 
         let toast_overlay = adw::ToastOverlay::new();
         toast_overlay.set_child(Some(&main_box));
@@ -324,13 +257,7 @@ impl AppWindow {
             dock_box,
             explorer_stack,
             sidebar_btn,
-            status_dock_btn,
             title_ctx,
-            status_dot,
-            status_label,
-            sync_label,
-            cwd_status_label,
-            host_status_label,
             store,
             tabs: RefCell::default(),
             tab_widgets: RefCell::default(),
@@ -421,37 +348,6 @@ impl AppWindow {
 
         self.window.set_title(Some(&session.window_title()));
         self.title_ctx.set_text(&session.titlebar_context());
-
-        let snap = session.status_snapshot();
-        for cls in ["idle", "ok", "wait", "err"] {
-            self.status_dot.remove_css_class(cls);
-        }
-        self.status_dot.add_css_class(snap.dot_class);
-        self.status_label.set_text(&snap.status_text);
-
-        match snap.sync_text {
-            Some(ref txt) => {
-                self.sync_label.set_text(txt);
-                self.sync_label.set_visible(true);
-            }
-            None => {
-                self.sync_label.set_visible(false);
-            }
-        }
-
-        if !snap.cwd.is_empty() {
-            self.cwd_status_label.set_text(&snap.cwd);
-            self.cwd_status_label.set_visible(true);
-        } else {
-            self.cwd_status_label.set_visible(false);
-        }
-
-        if let Some(ref host) = snap.target_label {
-            self.host_status_label.set_text(host);
-            self.host_status_label.set_visible(true);
-        } else {
-            self.host_status_label.set_visible(false);
-        }
     }
 
     fn toggle_dock(&self) {
@@ -459,10 +355,8 @@ impl AppWindow {
         self.dock_box.set_visible(next);
         if next {
             self.sidebar_btn.add_css_class("active");
-            self.status_dock_btn.add_css_class("active");
         } else {
             self.sidebar_btn.remove_css_class("active");
-            self.status_dock_btn.remove_css_class("active");
         }
     }
 
@@ -538,10 +432,10 @@ impl AppWindow {
 
     fn build_tab_item(self: &Rc<Self>, page: &adw::TabPage) -> gtk::Box {
         let tab_box = gtk::Box::new(gtk::Orientation::Horizontal, 5);
-        tab_box.add_css_class("zed-tab");
+        tab_box.add_css_class("riso-tab");
 
         let dot = gtk::Label::new(Some("•"));
-        dot.add_css_class("zed-tab-dot");
+        dot.add_css_class("riso-tab-dot");
         dot.set_valign(gtk::Align::Center);
 
         let sync_dot = |p: &adw::TabPage, d: &gtk::Label| {
@@ -559,7 +453,7 @@ impl AppWindow {
         sync_dot(page, &dot);
 
         let label = gtk::Label::new(Some(&page.title()));
-        label.add_css_class("zed-tab-label");
+        label.add_css_class("riso-tab-label");
         label.set_valign(gtk::Align::Center);
         label.set_ellipsize(gtk::pango::EllipsizeMode::End);
         label.set_max_width_chars(28);
@@ -572,7 +466,7 @@ impl AppWindow {
 
         let close_btn = gtk::Button::from_icon_name("riso-close-symbolic");
         close_btn.add_css_class("flat");
-        close_btn.add_css_class("zed-tab-close");
+        close_btn.add_css_class("riso-tab-close");
         close_btn.set_valign(gtk::Align::Center);
         close_btn.set_can_focus(false);
         close_btn.set_tooltip_text(Some("Chiudi scheda (Ctrl+Shift+W)"));

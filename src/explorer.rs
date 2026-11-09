@@ -139,7 +139,7 @@ impl Explorer {
         let widget = gtk::Box::new(gtk::Orientation::Vertical, 0);
         widget.add_css_class("explorer-sidebar");
 
-        // -- Zed-style 34px Explorer Header Bar ------------------------------
+        // -- Explorer Header Bar ---------------------------------------------
         let toolbar = gtk::Box::new(gtk::Orientation::Horizontal, 2);
         toolbar.add_css_class("explorer-toolbar");
 

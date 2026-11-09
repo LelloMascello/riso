@@ -62,14 +62,6 @@ impl PromptState {
     }
 }
 
-pub struct StatusSnapshot {
-    pub dot_class: &'static str,
-    pub status_text: String,
-    pub sync_text: Option<String>,
-    pub target_label: Option<String>,
-    pub cwd: String,
-}
-
 pub struct Session {
     pub widget: gtk::Box,
     pub terminal: vte4::Terminal,
@@ -107,26 +99,26 @@ impl Session {
         let widget = gtk::Box::new(gtk::Orientation::Vertical, 0);
         widget.add_css_class("session-view");
 
-        // -- Zed-style Breadcrumb / Session Sub-header Bar -------------------
+        // -- Breadcrumb / Session Sub-header Bar ----------------------------
         let subheader = gtk::Box::new(gtk::Orientation::Horizontal, 0);
-        subheader.add_css_class("zed-subheader");
+        subheader.add_css_class("riso-subheader");
 
         let crumb_root = gtk::Label::new(Some("ssh"));
-        crumb_root.add_css_class("zed-crumb-root");
+        crumb_root.add_css_class("riso-crumb-root");
 
         let crumb_sep = gtk::Label::new(Some("›"));
-        crumb_sep.add_css_class("zed-crumb-sep");
+        crumb_sep.add_css_class("riso-crumb-sep");
 
         let crumb_target = gtk::Label::new(Some("nuova sessione"));
-        crumb_target.add_css_class("zed-crumb-target");
+        crumb_target.add_css_class("riso-crumb-target");
         crumb_target.set_xalign(0.0);
 
         let crumb_cwd_sep = gtk::Label::new(Some("›"));
-        crumb_cwd_sep.add_css_class("zed-crumb-sep");
+        crumb_cwd_sep.add_css_class("riso-crumb-sep");
         crumb_cwd_sep.set_visible(false);
 
         let crumb_cwd = gtk::Label::new(None);
-        crumb_cwd.add_css_class("zed-crumb-path");
+        crumb_cwd.add_css_class("riso-crumb-path");
         crumb_cwd.set_xalign(0.0);
         crumb_cwd.set_ellipsize(gtk::pango::EllipsizeMode::Middle);
         crumb_cwd.set_visible(false);
@@ -135,7 +127,7 @@ impl Session {
         sub_spacer.set_hexpand(true);
 
         let reconnect_btn = gtk::Button::with_label("Riconnetti");
-        reconnect_btn.add_css_class("zed-action-btn");
+        reconnect_btn.add_css_class("riso-action-btn");
         reconnect_btn.set_valign(gtk::Align::Center);
         reconnect_btn.set_visible(false);
 
@@ -253,16 +245,6 @@ impl Session {
             target.label()
         } else {
             "ssh".to_string()
-        }
-    }
-
-    pub fn status_snapshot(&self) -> StatusSnapshot {
-        StatusSnapshot {
-            dot_class: self.dot_class.get(),
-            status_text: self.status_text.borrow().clone(),
-            sync_text: self.sync_text.borrow().clone(),
-            target_label: self.target.borrow().as_ref().map(SshTarget::label),
-            cwd: self.explorer.cwd(),
         }
     }
 

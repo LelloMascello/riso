@@ -173,7 +173,7 @@ pub async fn prompt(
     dialog.set_default_response(Some("ok"));
     dialog.set_close_response("cancel");
     let entry = gtk::Entry::new();
-    entry.add_css_class("zed-dialog-entry");
+    entry.add_css_class("riso-dialog-entry");
     entry.set_text(initial);
     entry.set_activates_default(true);
     dialog.set_extra_child(Some(&entry));
