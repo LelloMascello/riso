@@ -1,4 +1,4 @@
-//! Integrated SFTP file explorer.
+//! GUI: integrated SFTP file explorer panel (GTK list view, drag & drop).
 
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
@@ -10,41 +10,19 @@ use std::time::Duration;
 use adw::prelude::*;
 use gtk::{gdk, gio, glib};
 
-use crate::editsync::EditSync;
+use crate::files::{Entry, local_size, sort_entries, unique_destination};
+use crate::gui::edit_sync::EditSync;
+use crate::gui::widgets;
 use crate::remote::{Progress, Remote};
 use crate::sftp::{self, Sftp};
-use crate::ui;
 
 pub const DRAG_PREFIX: &str = "riso-paths:";
 
-#[derive(Debug, Clone)]
-pub struct Entry {
-    pub name: String,
-    pub path: String,
-    pub is_dir: bool,
-    pub is_link: bool,
-    pub size: u64,
-    pub mtime: u32,
-    pub perms: u32,
-}
-
 impl Entry {
-    fn new(dir: &str, e: &sftp::DirEntry) -> Self {
-        Entry {
-            name: e.name.clone(),
-            path: sftp::join(dir, &e.name),
-            is_dir: e.attrs.is_dir(),
-            is_link: e.attrs.is_symlink(),
-            size: e.attrs.size.unwrap_or(0),
-            mtime: e.attrs.mtime.unwrap_or(0),
-            perms: e.attrs.permissions.unwrap_or(0),
-        }
-    }
-
     fn tooltip(&self) -> String {
-        let mut s = perm_string(self.perms, self.is_dir, self.is_link);
+        let mut s = self.perm_string();
         if !self.is_dir {
-            s.push_str(&format!("  {}", ui::human_size(self.size)));
+            s.push_str(&format!("  {}", widgets::human_size(self.size)));
         }
         if self.mtime > 0
             && let Ok(dt) = glib::DateTime::from_unix_local(self.mtime as i64)
@@ -54,33 +32,6 @@ impl Entry {
         }
         s
     }
-}
-
-fn perm_string(mode: u32, is_dir: bool, is_link: bool) -> String {
-    let mut s = String::with_capacity(10);
-    s.push(if is_link || mode & 0o170000 == 0o120000 {
-        'l'
-    } else if is_dir {
-        'd'
-    } else {
-        '-'
-    });
-    for shift in [6, 3, 0] {
-        let bits = (mode >> shift) & 7;
-        s.push(if bits & 4 != 0 { 'r' } else { '-' });
-        s.push(if bits & 2 != 0 { 'w' } else { '-' });
-        s.push(if bits & 1 != 0 { 'x' } else { '-' });
-    }
-    s
-}
-
-fn sort_entries(v: &mut [Entry]) {
-    v.sort_by(|a, b| {
-        b.is_dir
-            .cmp(&a.is_dir)
-            .then_with(|| a.name.to_lowercase().cmp(&b.name.to_lowercase()))
-            .then_with(|| a.name.cmp(&b.name))
-    });
 }
 
 fn entry_of(obj: &glib::Object) -> Option<Entry> {
@@ -298,7 +249,7 @@ impl Explorer {
                 }
             } else {
                 icon.set_icon_name(Some("riso-file-symbolic"));
-                meta.set_text(&ui::human_size(entry.size));
+                meta.set_text(&widgets::human_size(entry.size));
                 meta.set_visible(true);
             }
 
@@ -611,7 +562,7 @@ impl Explorer {
     }
 
     fn toast(&self, msg: &str) {
-        ui::toast(&self.widget, msg);
+        widgets::toast(&self.widget, msg);
     }
 
     // -----------------------------------------------------------------------
@@ -815,7 +766,7 @@ impl Explorer {
 
             if !existing.is_empty() {
                 let body = existing.join(", ");
-                if !ui::confirm(
+                if !widgets::confirm(
                     &this.widget,
                     "Sostituire i file esistenti?",
                     &body,
@@ -999,7 +950,7 @@ impl Explorer {
         let this = self.clone();
         glib::spawn_future_local(async move {
             let Some(new_name) =
-                ui::prompt(&this.widget, "Rinomina", &entry.name, "Rinomina", !entry.is_dir).await
+                widgets::prompt(&this.widget, "Rinomina", &entry.name, "Rinomina", !entry.is_dir).await
             else {
                 return;
             };
@@ -1041,7 +992,7 @@ impl Explorer {
             } else {
                 format!("Eliminare {} elementi?", entries.len())
             };
-            if !ui::confirm(&this.widget, &heading, "", "Elimina", true).await {
+            if !widgets::confirm(&this.widget, &heading, "", "Elimina", true).await {
                 return;
             }
             let paths: Vec<String> = entries.iter().map(|e| e.path.clone()).collect();
@@ -1071,7 +1022,7 @@ impl Explorer {
         let this = self.clone();
         glib::spawn_future_local(async move {
             let heading = if folder { "Nuova cartella" } else { "Nuovo file" };
-            let Some(name) = ui::prompt(&this.widget, heading, "", "Crea", false).await else {
+            let Some(name) = widgets::prompt(&this.widget, heading, "", "Crea", false).await else {
                 return;
             };
             if name.contains('/') {
@@ -1387,38 +1338,5 @@ fn merge_into(store: &gio::ListStore, entries: Vec<Entry>) {
         if !matches {
             store.insert(j, &glib::BoxedAnyObject::new(e.clone()));
         }
-    }
-}
-
-fn unique_destination(s: &mut Sftp, dir: &str, name: &str) -> io::Result<String> {
-    let candidate = sftp::join(dir, name);
-    if !s.exists(&candidate)? {
-        return Ok(candidate);
-    }
-    let (stem, ext) = match name.rfind('.') {
-        Some(i) if i > 0 => (&name[..i], &name[i..]),
-        _ => (name, ""),
-    };
-    for n in 1.. {
-        let suffix = if n == 1 {
-            " (copia)".to_string()
-        } else {
-            format!(" (copia {n})")
-        };
-        let candidate = sftp::join(dir, &format!("{stem}{suffix}{ext}"));
-        if !s.exists(&candidate)? {
-            return Ok(candidate);
-        }
-    }
-    unreachable!()
-}
-
-fn local_size(path: &std::path::Path) -> u64 {
-    match std::fs::symlink_metadata(path) {
-        Ok(m) if m.is_dir() => std::fs::read_dir(path)
-            .map(|rd| rd.flatten().map(|e| local_size(&e.path())).sum())
-            .unwrap_or(0),
-        Ok(m) => m.len(),
-        Err(_) => 0,
     }
 }

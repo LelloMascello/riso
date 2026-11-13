@@ -1,4 +1,4 @@
-//! Terminal widget construction and minimal UI dialogs.
+//! GUI: VTE terminal widget construction, toasts and minimal dialogs.
 
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -22,7 +22,7 @@ pub fn new_terminal() -> (vte4::Terminal, PasteHook) {
     term.set_font(Some(&pango::FontDescription::from_string("Monospace 10.5")));
     term.set_cell_height_scale(1.08);
     term.add_css_class("session-terminal");
-    crate::theme::bind_terminal(&term);
+    crate::gui::theme::bind_terminal(&term);
     term.set_margin_start(12);
     term.set_margin_end(6);
     term.set_margin_top(8);

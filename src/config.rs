@@ -5,8 +5,9 @@ use std::io;
 use std::path::PathBuf;
 use std::rc::Rc;
 
-use gtk::glib;
 use serde::{Deserialize, Serialize};
+
+use crate::paths;
 
 const MAX_RECENT_HOSTS: usize = 50;
 
@@ -194,7 +195,8 @@ pub fn parse_ssh_command(input: &str) -> Option<ParsedSsh> {
     })
 }
 
-fn split_shell_words(s: &str) -> Option<Vec<String>> {
+/// Splits a command line into words, honouring POSIX-shell quoting.
+pub fn split_shell_words(s: &str) -> Option<Vec<String>> {
     let mut words = Vec::new();
     let mut cur = String::new();
     let mut in_word = false;
@@ -253,10 +255,9 @@ fn split_shell_words(s: &str) -> Option<Vec<String>> {
 
 /// Builds the fixed local prompt prefix, e.g. `[leo@archlinux ~]$ ssh `.
 pub fn local_prompt_prefix() -> String {
-    let user = glib::user_name().to_string_lossy().into_owned();
-    let full_host = glib::host_name();
+    let user = paths::user_name();
+    let full_host = paths::host_name();
     let host = full_host
-        .as_str()
         .split('.')
         .next()
         .filter(|s| !s.is_empty())
@@ -446,7 +447,7 @@ impl HostStore {
 }
 
 fn config_file() -> PathBuf {
-    glib::user_config_dir().join("riso").join("connections.json")
+    paths::config_dir().join("riso").join("connections.json")
 }
 
 pub fn load_connections() -> Vec<Connection> {
@@ -476,7 +477,7 @@ pub fn new_id() -> u64 {
 
 /// Host aliases declared in `~/.ssh/config` (without wildcards).
 pub fn ssh_config_hosts() -> Vec<String> {
-    let path = glib::home_dir().join(".ssh").join("config");
+    let path = paths::home_dir().join(".ssh").join("config");
     let Ok(text) = std::fs::read_to_string(path) else {
         return Vec::new();
     };

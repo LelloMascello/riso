@@ -9,7 +9,7 @@ use adw::prelude::*;
 use gtk::{gio, glib};
 
 use crate::config::{HostStore, ParsedSsh};
-use crate::session::Session;
+use crate::gui::session::Session;
 
 pub struct AppWindow {
     pub window: adw::ApplicationWindow,

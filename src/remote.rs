@@ -12,9 +12,8 @@ use std::process::{Child, Command, Stdio};
 use std::sync::atomic::{AtomicU32, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, mpsc};
 
-use gtk::glib;
-
 use crate::config::{Connection, ParsedSsh};
+use crate::paths;
 use crate::sftp::Sftp;
 
 static CONTROL_COUNTER: AtomicU32 = AtomicU32::new(0);
@@ -160,7 +159,7 @@ impl SshTarget {
 }
 
 fn new_control_path() -> PathBuf {
-    let dir = glib::user_runtime_dir().join("riso");
+    let dir = paths::runtime_dir().join("riso");
     let _ = std::fs::create_dir_all(&dir);
     {
         use std::os::unix::fs::PermissionsExt;
@@ -172,7 +171,7 @@ fn new_control_path() -> PathBuf {
 
 pub fn expand_tilde(path: &str) -> String {
     if let Some(rest) = path.strip_prefix("~/") {
-        format!("{}/{rest}", glib::home_dir().display())
+        format!("{}/{rest}", paths::home_dir().display())
     } else {
         path.to_string()
     }
@@ -226,6 +225,34 @@ impl Remote {
         }
     }
 
+    /// Queues `f` on the worker thread without waiting for it. `f` receives
+    /// `None` when the SFTP channel could not be opened. Returns `false` when
+    /// the worker is gone (the job is dropped).
+    ///
+    /// Used by frontends without an async executor (riso-tui), which report
+    /// results back through their own channel.
+    pub fn spawn(&self, f: impl FnOnce(Option<&mut Sftp>) + Send + 'static) -> bool {
+        self.tx
+            .borrow()
+            .as_ref()
+            .is_some_and(|tx| tx.send(Box::new(f)).is_ok())
+    }
+
+    /// Like [`Remote::spawn`], but maps a missing channel to an error and
+    /// hands the result to `done` on the worker thread.
+    pub fn spawn_with<T, F, D>(&self, f: F, done: D) -> bool
+    where
+        F: FnOnce(&mut Sftp) -> io::Result<T> + Send + 'static,
+        D: FnOnce(io::Result<T>) + Send + 'static,
+    {
+        self.spawn(move |sftp| {
+            done(match sftp {
+                Some(sftp) => f(sftp),
+                None => Err(not_available()),
+            })
+        })
+    }
+
     /// Runs `f` on the worker thread and awaits its result.
     pub async fn run<T, F>(&self, f: F) -> io::Result<T>
     where
@@ -233,22 +260,9 @@ impl Remote {
         F: FnOnce(&mut Sftp) -> io::Result<T> + Send + 'static,
     {
         let (s, r) = async_channel::bounded(1);
-        let job: Job = Box::new(move |sftp| {
-            let res = match sftp {
-                Some(sftp) => f(sftp),
-                None => Err(io::Error::new(
-                    io::ErrorKind::NotConnected,
-                    "Canale SFTP non disponibile",
-                )),
-            };
+        let sent = self.spawn_with(f, move |res| {
             let _ = s.send_blocking(res);
         });
-        let sent = self
-            .tx
-            .borrow()
-            .as_ref()
-            .map(|tx| tx.send(job).is_ok())
-            .unwrap_or(false);
         if !sent {
             return Err(io::Error::new(
                 io::ErrorKind::NotConnected,
@@ -273,6 +287,10 @@ impl Remote {
             });
         }
     }
+}
+
+fn not_available() -> io::Error {
+    io::Error::new(io::ErrorKind::NotConnected, "Canale SFTP non disponibile")
 }
 
 impl Drop for Remote {

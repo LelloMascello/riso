@@ -1,50 +1,31 @@
-//! Local editing of remote files with support for terminal editors (`nvim`,
+//! GUI: local editing of remote files with support for terminal editors (`nvim`,
 //! `helix`, `vim`, …) and atomic/backup-rename saves.
 
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fs;
 use std::io::Read;
-use std::os::unix::fs::MetadataExt;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::rc::Rc;
-use std::time::{Duration, SystemTime};
+use std::time::Duration;
 
 use adw::prelude::*;
 use gtk::{gdk, gio, glib};
 
+use crate::files::FileStamp;
+use crate::gui::widgets;
 use crate::remote::Remote;
 use crate::sftp;
-use crate::ui;
 
 const KNOWN_TUI_EDITORS: &[&str] = &[
     "nvim", "vim", "vi", "hx", "helix", "nano", "micro", "kak", "ne", "vis",
 ];
 
-#[derive(Clone, Copy, PartialEq, Eq)]
-struct Stamp {
-    mtime: Option<SystemTime>,
-    len: u64,
-    ino: u64,
-}
-
-fn file_stamp(path: &Path) -> Option<Stamp> {
-    let m = fs::metadata(path).ok()?;
-    if !m.is_file() {
-        return None;
-    }
-    Some(Stamp {
-        mtime: m.modified().ok(),
-        len: m.len(),
-        ino: m.ino(),
-    })
-}
-
 struct Watch {
     remote_path: String,
     _monitor: gio::FileMonitor,
-    last_stamp: Option<Stamp>,
+    last_stamp: Option<FileStamp>,
     pending: Option<glib::SourceId>,
 }
 
@@ -58,7 +39,7 @@ pub struct EditSync {
 
 impl EditSync {
     pub fn new(session_id: u64, widget: &impl IsA<gtk::Widget>) -> Rc<Self> {
-        let base = glib::user_cache_dir()
+        let base = crate::paths::cache_dir()
             .join("riso")
             .join("edit")
             .join(format!("{}-{session_id}", std::process::id()));
@@ -108,13 +89,13 @@ impl EditSync {
 
     pub async fn open(self: &Rc<Self>, remote_path: String, ask_app: bool) {
         let Some(remote) = self.remote.borrow().clone() else {
-            ui::toast(&self.widget, "Non connesso");
+            widgets::toast(&self.widget, "Non connesso");
             return;
         };
         let local = self.local_path(&remote_path);
         if let Some(dir) = local.parent() {
             if let Err(e) = fs::create_dir_all(dir) {
-                ui::toast(&self.widget, &format!("Errore locale: {e}"));
+                widgets::toast(&self.widget, &format!("Errore locale: {e}"));
                 return;
             }
         }
@@ -127,7 +108,7 @@ impl EditSync {
 
         let (r, l) = (remote_path.clone(), local.clone());
         if let Err(e) = remote.run(move |s| s.download_file(&r, &l, &mut |_| {})).await {
-            ui::toast(
+            widgets::toast(
                 &self.widget,
                 &format!("{}: {e}", sftp::basename(&remote_path)),
             );
@@ -135,13 +116,13 @@ impl EditSync {
         }
 
         if let Err(e) = self.watch(&local, &remote_path) {
-            ui::toast(&self.widget, &format!("Monitoraggio fallito: {e}"));
+            widgets::toast(&self.widget, &format!("Monitoraggio fallito: {e}"));
         }
 
         if ask_app {
             open_with_dialog(&self.widget, &local).await;
         } else if let Err(e) = launch_default(&local) {
-            ui::toast(&self.widget, &e);
+            widgets::toast(&self.widget, &e);
         }
     }
 
@@ -185,7 +166,7 @@ impl EditSync {
             Watch {
                 remote_path: remote_path.to_string(),
                 _monitor: monitor,
-                last_stamp: file_stamp(local),
+                last_stamp: FileStamp::of(local),
                 pending: None,
             },
         );
@@ -215,7 +196,7 @@ impl EditSync {
     }
 
     async fn upload(self: Rc<Self>, local: PathBuf) {
-        let Some(current) = file_stamp(&local) else { return };
+        let Some(current) = FileStamp::of(&local) else { return };
         let remote_path = {
             let watches = self.watches.borrow();
             let Some(w) = watches.get(&local) else { return };
@@ -226,7 +207,7 @@ impl EditSync {
         };
         let name = sftp::basename(&remote_path);
         let Some(remote) = self.remote.borrow().clone() else {
-            ui::toast(&self.widget, &format!("{name}: non connesso"));
+            widgets::toast(&self.widget, &format!("{name}: non connesso"));
             return;
         };
         let (l, r) = (local.clone(), remote_path);
@@ -236,7 +217,7 @@ impl EditSync {
                     w.last_stamp = Some(current);
                 }
             }
-            Err(e) => ui::toast(&self.widget, &format!("Sync {name}: {e}")),
+            Err(e) => widgets::toast(&self.widget, &format!("Sync {name}: {e}")),
         }
     }
 }
@@ -667,7 +648,7 @@ async fn open_with_dialog(parent: &gtk::Widget, local: &Path) {
             Choice::Command(cmd) => launch_command_line(&cmd, local, true),
         };
         if let Err(e) = res {
-            ui::toast(parent, &e);
+            widgets::toast(parent, &e);
         }
     }
 }

@@ -1,0 +1,5 @@
+[alias]
+gui = "run --no-default-features --features gui --"
+tui = "run --no-default-features --features tui --"
+build-gui = "build --release --no-default-features --features gui"
+build-tui = "build --release --no-default-features --features tui"

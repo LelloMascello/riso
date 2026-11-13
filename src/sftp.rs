@@ -442,13 +442,32 @@ impl Sftp {
         let _ = self.close(&handle);
         result?;
 
-        // Resolve symlinks so that links to directories can be browsed.
+        // Resolve symlinks in pipelined batches so directories with many links
+        // only pay one roundtrip instead of N sequential stat calls.
         let base = path.trim_end_matches('/');
-        for e in entries.iter_mut().filter(|e| e.attrs.is_symlink()) {
-            if let Ok(target) = self.stat(&format!("{base}/{}", e.name)) {
-                if target.is_dir() {
-                    e.attrs.permissions = target.permissions;
-                    e.attrs.size = target.size;
+        let syms: Vec<usize> = entries
+            .iter()
+            .enumerate()
+            .filter_map(|(idx, e)| e.attrs.is_symlink().then_some(idx))
+            .collect();
+        for chunk in syms.chunks(MAX_IN_FLIGHT) {
+            let mut ids = Vec::with_capacity(chunk.len());
+            for &idx in chunk {
+                let target_path = format!("{base}/{}", entries[idx].name);
+                let id = self.send(FXP_STAT, |b| b.str(&target_path))?;
+                ids.push((idx, id));
+            }
+            for (idx, expected_id) in ids {
+                let pkt = self.read_packet()?;
+                if pkt.id != expected_id {
+                    return Err(proto_err("id risposta SFTP non corrispondente"));
+                }
+                if pkt.kind == FXP_ATTRS
+                    && let Ok(target) = pkt.reader().attrs()
+                    && target.is_dir()
+                {
+                    entries[idx].attrs.permissions = target.permissions;
+                    entries[idx].attrs.size = target.size;
                 }
             }
         }

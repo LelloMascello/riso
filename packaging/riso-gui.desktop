@@ -1,11 +1,12 @@
 [Desktop Entry]
 Type=Application
 Name=Riso
+GenericName=SSH Client
 Comment=Remote Interface for SSH Operations
-Exec=riso
-Icon=riso-icon
+Exec=riso-gui
+Icon=riso-gui
 Terminal=false
 Categories=Network;RemoteAccess;
 Keywords=ssh;sftp;terminal;remote;
 StartupNotify=true
-StartupWMClass=io.github.sshclient.App
+StartupWMClass=io.github.LelloMascello.RisoGui

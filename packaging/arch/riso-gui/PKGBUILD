@@ -1,0 +1,69 @@
+# Maintainer: Leopoldo <leopoldopollini@gmail.com>
+
+pkgname=riso-gui
+_crate=riso
+pkgver=0.1.1
+pkgrel=1
+pkgdesc='Remote Interface for SSH Operations — graphical SSH client (GTK4) with integrated SFTP explorer'
+arch=('x86_64' 'aarch64')
+url='https://github.com/LelloMascello/riso'
+license=('MIT')
+depends=(
+  'glib2'
+  'glibc'
+  'gtk4'
+  'hicolor-icon-theme'
+  'libadwaita'
+  'libgcc'
+  'openssh'
+  'pango'
+  'vte4'
+)
+makedepends=('cargo')
+provides=('riso')
+conflicts=('riso')
+replaces=('riso')
+options=('!lto' '!debug')
+
+_features=(--no-default-features --features gui)
+
+prepare() {
+  local _root
+  _root="$(realpath "$startdir/../../..")"
+
+  rm -rf "$srcdir/$_crate"
+  mkdir -p "$srcdir/$_crate/packaging"
+  cp -a "$_root"/{Cargo.toml,Cargo.lock,README.md,src,assets} "$srcdir/$_crate/"
+  cp -a "$_root/packaging/$pkgname.desktop" "$srcdir/$_crate/packaging/"
+  [[ -f "$_root/LICENSE" ]] && cp -a "$_root/LICENSE" "$srcdir/$_crate/"
+
+  cd "$srcdir/$_crate"
+  export RUSTUP_TOOLCHAIN=stable
+  cargo fetch --locked --offline 2>/dev/null || \
+    cargo fetch --locked --target "$(rustc -vV | sed -n 's/host: //p')"
+}
+
+build() {
+  cd "$srcdir/$_crate"
+  export RUSTUP_TOOLCHAIN=stable
+  export CARGO_TARGET_DIR=target
+  cargo build --frozen --release "${_features[@]}"
+}
+
+check() {
+  cd "$srcdir/$_crate"
+  export RUSTUP_TOOLCHAIN=stable
+  export CARGO_TARGET_DIR=target
+  cargo test --frozen --release "${_features[@]}"
+}
+
+package() {
+  cd "$srcdir/$_crate"
+  install -Dm755 "target/release/$_crate" "$pkgdir/usr/bin/$pkgname"
+  install -Dm644 "packaging/$pkgname.desktop" "$pkgdir/usr/share/applications/$pkgname.desktop"
+  install -Dm644 "assets/riso-icon.png" "$pkgdir/usr/share/icons/hicolor/512x512/apps/$pkgname.png"
+  install -Dm644 "README.md" "$pkgdir/usr/share/doc/$pkgname/README.md"
+  if [[ -f LICENSE ]]; then
+    install -Dm644 "LICENSE" "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+  fi
+}
